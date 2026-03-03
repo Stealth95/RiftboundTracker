@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riftbound Tracker</title>
+    <style>
+        body {
+            margin:0;
+            font-family:Arial, sans-serif;
+            background:#0f172a;
+            color:white;
+            text-align:center;
+        }
+        .screen { display:none; padding:20px; }
+        .active { display:block; }
+
+        button {
+            padding:12px 20px;
+            margin:6px;
+            border:none;
+            border-radius:8px;
+            font-size:16px;
+        }
+
+        .top, .bottom {
+            height:35vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:60px;
+            font-weight:bold;
+        }
+
+        .top { background:#1e293b; }
+        .bottom { background:#334155; }
+
+        .menu {
+            position:fixed;
+            top:10px;
+            left:10px;
+        }
+
+        .d20 {
+            font-size:40px;
+            margin:10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="menu">
+    <button onclick="showScreen('tracker')">Tracker</button>
+    <button onclick="showScreen('history')">History</button>
+    <button onclick="showScreen('stats')">Stats</button>
+</div>
+
+<!-- TRACKER SCREEN -->
+<div id="tracker" class="screen active">
+
+    <h2>Best of 3</h2>
+    <div>Match Score: <span id="matchScore">0 - 0</span></div>
+
+    <div class="d20">🎲 <span id="d20Result">-</span></div>
+    <button onclick="rollD20()">Roll D20</button>
+
+    <div class="top" id="p1">0</div>
+    <div class="bottom" id="p2">0</div>
+
+    <button onclick="resetGame()">Reset Game</button>
+
+</div>
+
+<!-- HISTORY SCREEN -->
+<div id="history" class="screen">
+    <h2>Match History</h2>
+    <ul id="historyList"></ul>
+</div>
+
+<!-- STATS SCREEN -->
+<div id="stats" class="screen">
+    <h2>Stats</h2>
+    <div>Total Matches: <span id="totalMatches">0</span></div>
+    <div>Player 1 Wins: <span id="p1WinsStat">0</span></div>
+    <div>Player 2 Wins: <span id="p2WinsStat">0</span></div>
+</div>
+
+<script>
+    let p1 = 0;
+    let p2 = 0;
+    let matchP1 = 0;
+    let matchP2 = 0;
+
+    let stats = JSON.parse(localStorage.getItem("stats")) || {
+        totalMatches:0,
+        p1Wins:0,
+        p2Wins:0,
+        history:[]
+    };
+
+    function save() {
+        localStorage.setItem("stats", JSON.stringify(stats));
+    }
+
+    function showScreen(name){
+        document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+        document.getElementById(name).classList.add("active");
+        updateStats();
+        updateHistory();
+    }
+
+    function rollD20(){
+        let roll = Math.floor(Math.random()*20)+1;
+        document.getElementById("d20Result").innerText = roll;
+        playSound(800);
+    }
+
+    function playSound(freq){
+        let ctx = new AudioContext();
+        let osc = ctx.createOscillator();
+        osc.type="sine";
+        osc.frequency.value=freq;
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime+0.1);
+    }
+
+    function updateUI(){
+        document.getElementById("p1").innerText=p1;
+        document.getElementById("p2").innerText=p2;
+        document.getElementById("matchScore").innerText=matchP1+" - "+matchP2;
+    }
+
+    function checkWin(){
+        if(p1>=20 || p2>=20){
+            if(p1>p2){
+                matchP1++;
+                playSound(1200);
+            } else {
+                matchP2++;
+                playSound(400);
+            }
+            p1=0;
+            p2=0;
+
+            if(matchP1==2 || matchP2==2){
+                let winner = matchP1==2?"Player 1":"Player 2";
+                stats.totalMatches++;
+                if(matchP1==2) stats.p1Wins++;
+                if(matchP2==2) stats.p2Wins++;
+                stats.history.unshift(winner+" won "+matchP1+"-"+matchP2);
+                save();
+                matchP1=0;
+                matchP2=0;
+            }
+        }
+        updateUI();
+    }
+
+    function resetGame(){
+        p1=0;
+        p2=0;
+        matchP1=0;
+        matchP2=0;
+        updateUI();
+    }
+
+    function updateStats(){
+        document.getElementById("totalMatches").innerText=stats.totalMatches;
+        document.getElementById("p1WinsStat").innerText=stats.p1Wins;
+        document.getElementById("p2WinsStat").innerText=stats.p2Wins;
+    }
+
+    function updateHistory(){
+        let list=document.getElementById("historyList");
+        list.innerHTML="";
+        stats.history.forEach(h=>{
+            let li=document.createElement("li");
+            li.innerText=h;
+            list.appendChild(li);
+        });
+    }
+
+    function addScore(player){
+        if(player==1) p1++;
+        if(player==2) p2++;
+        playSound(700);
+        checkWin();
+    }
+
+    function subtractScore(player){
+        if(player==1 && p1>0) p1--;
+        if(player==2 && p2>0) p2--;
+        playSound(300);
+        updateUI();
+    }
+
+    let pressTimer;
+
+    document.getElementById("p1").addEventListener("mousedown", ()=> {
+        pressTimer=setTimeout(()=>subtractScore(1),500);
+    });
+    document.getElementById("p1").addEventListener("mouseup", ()=> {
+        clearTimeout(pressTimer);
+        addScore(1);
+    });
+
+    document.getElementById("p2").addEventListener("mousedown", ()=> {
+        pressTimer=setTimeout(()=>subtractScore(2),500);
+    });
+    document.getElementById("p2").addEventListener("mouseup", ()=> {
+        clearTimeout(pressTimer);
+        addScore(2);
+    });
+
+    updateUI();
+    updateStats();
+    updateHistory();
+</script>
+
+</body>
+</html>
