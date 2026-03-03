@@ -1,30 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Riftbound Tracker</title>
+
     <style>
         body {
             margin:0;
             font-family:Arial, sans-serif;
             background:#0f172a;
             color:white;
-            text-align:center;
         }
-        .screen { display:none; padding:20px; }
-        .active { display:block; }
+
+        .menu {
+            display:flex;
+            justify-content:center;
+            gap:10px;
+            padding:10px;
+            background:#0b1220;
+            position:sticky;
+            top:0;
+            z-index:100;
+        }
 
         button {
-            padding:12px 20px;
-            margin:6px;
+            padding:10px 15px;
             border:none;
             border-radius:8px;
-            font-size:16px;
+            font-size:14px;
         }
 
-        .top, .bottom {
-            height:35vh;
+        .screen {
+            display:none;
+            padding:20px;
+        }
+
+        .active {
+            display:block;
+        }
+
+        .score-area {
+            height:30vh;
             display:flex;
             align-items:center;
             justify-content:center;
@@ -35,15 +51,10 @@
         .top { background:#1e293b; }
         .bottom { background:#334155; }
 
-        .menu {
-            position:fixed;
-            top:10px;
-            left:10px;
-        }
-
-        .d20 {
-            font-size:40px;
-            margin:10px;
+        input {
+            padding:6px;
+            border-radius:6px;
+            border:none;
         }
     </style>
 </head>
@@ -55,29 +66,44 @@
     <button onclick="showScreen('stats')">Stats</button>
 </div>
 
-<!-- TRACKER SCREEN -->
-<div id="tracker" class="screen active">
+<!-- PROFILE SCREEN -->
+<div id="profile" class="screen active">
+    <h2>Select Profile</h2>
+    <input type="text" id="usernameInput" placeholder="Enter name">
+    <button onclick="setProfile()">Start</button>
+</div>
 
-    <h2>Best of 3</h2>
+<!-- TRACKER -->
+<div id="tracker" class="screen">
+
+    <h3 id="currentUser"></h3>
+
+    <div>
+        Winning Score:
+        <input type="number" id="winInput" min="1" value="8" style="width:60px;">
+        <button onclick="setWinningScore()">Set</button>
+    </div>
+
+    <h3>Best of 3</h3>
     <div>Match Score: <span id="matchScore">0 - 0</span></div>
 
-    <div class="d20">🎲 <span id="d20Result">-</span></div>
-    <button onclick="rollD20()">Roll D20</button>
+    <br>
 
-    <div class="top" id="p1">0</div>
-    <div class="bottom" id="p2">0</div>
+    <div class="score-area top" id="p1">0</div>
+    <div class="score-area bottom" id="p2">0</div>
 
+    <br>
     <button onclick="resetGame()">Reset Game</button>
 
 </div>
 
-<!-- HISTORY SCREEN -->
+<!-- HISTORY -->
 <div id="history" class="screen">
     <h2>Match History</h2>
     <ul id="historyList"></ul>
 </div>
 
-<!-- STATS SCREEN -->
+<!-- STATS -->
 <div id="stats" class="screen">
     <h2>Stats</h2>
     <div>Total Matches: <span id="totalMatches">0</span></div>
@@ -86,20 +112,50 @@
 </div>
 
 <script>
+
+    let username = null;
     let p1 = 0;
     let p2 = 0;
     let matchP1 = 0;
     let matchP2 = 0;
+    let winningScore = 8;
 
-    let stats = JSON.parse(localStorage.getItem("stats")) || {
-        totalMatches:0,
-        p1Wins:0,
-        p2Wins:0,
-        history:[]
-    };
+    let stats = {};
 
-    function save() {
-        localStorage.setItem("stats", JSON.stringify(stats));
+    function setProfile(){
+        username = document.getElementById("usernameInput").value.trim();
+        if(!username) return;
+
+        localStorage.setItem("lastUser", username);
+
+        loadUserData();
+        document.getElementById("currentUser").innerText = "Profile: " + username;
+        document.getElementById("profile").classList.remove("active");
+        document.getElementById("tracker").classList.add("active");
+    }
+
+    function loadUserData(){
+        stats = JSON.parse(localStorage.getItem("stats_"+username)) || {
+            totalMatches:0,
+            p1Wins:0,
+            p2Wins:0,
+            history:[]
+        };
+
+        winningScore = parseInt(localStorage.getItem("win_"+username)) || 8;
+        document.getElementById("winInput").value = winningScore;
+
+        updateStats();
+        updateHistory();
+    }
+
+    function save(){
+        localStorage.setItem("stats_"+username, JSON.stringify(stats));
+    }
+
+    function setWinningScore(){
+        winningScore = parseInt(document.getElementById("winInput").value);
+        localStorage.setItem("win_"+username, winningScore);
     }
 
     function showScreen(name){
@@ -109,14 +165,6 @@
         updateHistory();
     }
 
-    function rollD20(){
-        let roll = Math.floor(Math.random()*20)+1;
-        document.getElementById("d20Result").innerText = roll;
-
-    }
-
-
-
     function updateUI(){
         document.getElementById("p1").innerText=p1;
         document.getElementById("p2").innerText=p2;
@@ -124,22 +172,24 @@
     }
 
     function checkWin(){
-        if(p1>=20 || p2>=20){
-            if(p1>p2){
-                matchP1++;
-            } else {
-                matchP2++;
-            }
+        if(p1>=winningScore || p2>=winningScore){
+
+            if(p1>p2) matchP1++;
+            else matchP2++;
+
             p1=0;
             p2=0;
 
             if(matchP1==2 || matchP2==2){
                 let winner = matchP1==2?"Player 1":"Player 2";
+
                 stats.totalMatches++;
                 if(matchP1==2) stats.p1Wins++;
                 if(matchP2==2) stats.p2Wins++;
+
                 stats.history.unshift(winner+" won "+matchP1+"-"+matchP2);
                 save();
+
                 matchP1=0;
                 matchP2=0;
             }
@@ -156,12 +206,14 @@
     }
 
     function updateStats(){
+        if(!username) return;
         document.getElementById("totalMatches").innerText=stats.totalMatches;
         document.getElementById("p1WinsStat").innerText=stats.p1Wins;
         document.getElementById("p2WinsStat").innerText=stats.p2Wins;
     }
 
     function updateHistory(){
+        if(!username) return;
         let list=document.getElementById("historyList");
         list.innerHTML="";
         stats.history.forEach(h=>{
@@ -202,8 +254,7 @@
     });
 
     updateUI();
-    updateStats();
-    updateHistory();
+
 </script>
 
 </body>
