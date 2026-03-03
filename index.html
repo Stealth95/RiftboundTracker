@@ -35,9 +35,7 @@
             padding:20px;
         }
 
-        .active {
-            display:block;
-        }
+        .active { display:block; }
 
         .score-area {
             height:30vh;
@@ -51,10 +49,16 @@
         .top { background:#1e293b; }
         .bottom { background:#334155; }
 
-        input {
+        input, select {
             padding:6px;
             border-radius:6px;
             border:none;
+        }
+
+        .overtime-box {
+            margin-top:10px;
+            color:#facc15;
+            font-weight:bold;
         }
     </style>
 </head>
@@ -69,13 +73,19 @@
 <!-- PROFILE SCREEN -->
 <div id="profile" class="screen active">
     <h2>Select Profile</h2>
-    <input type="text" id="usernameInput" placeholder="Enter name">
-    <button onclick="setProfile()">Start</button>
+
+    <select id="profileSelect"></select>
+    <button onclick="loadSelectedProfile()">Load</button>
+
+    <hr>
+
+    <h3>Create New Profile</h3>
+    <input type="text" id="newProfileName" placeholder="New profile name">
+    <button onclick="createProfile()">Create</button>
 </div>
 
 <!-- TRACKER -->
 <div id="tracker" class="screen">
-
     <h3 id="currentUser"></h3>
 
     <div>
@@ -94,6 +104,9 @@
 
     <br>
     <button onclick="resetGame()">Reset Game</button>
+    <button onclick="startOvertime()">Start Overtime</button>
+
+    <div id="overtimeInfo" class="overtime-box"></div>
 
 </div>
 
@@ -114,37 +127,64 @@
 <script>
 
     let username = null;
-    let p1 = 0;
-    let p2 = 0;
-    let matchP1 = 0;
-    let matchP2 = 0;
+    let p1=0, p2=0, matchP1=0, matchP2=0;
     let winningScore = 8;
-
     let stats = {};
 
-    function setProfile(){
-        username = document.getElementById("usernameInput").value.trim();
-        if(!username) return;
+    let overtime = false;
+    let overtimeTurns = 3;
 
-        localStorage.setItem("lastUser", username);
-
-        loadUserData();
-        document.getElementById("currentUser").innerText = "Profile: " + username;
-        document.getElementById("profile").classList.remove("active");
-        document.getElementById("tracker").classList.add("active");
+    function getProfiles(){
+        return JSON.parse(localStorage.getItem("profiles")) || [];
     }
 
-    function loadUserData(){
-        stats = JSON.parse(localStorage.getItem("stats_"+username)) || {
+    function saveProfiles(profiles){
+        localStorage.setItem("profiles", JSON.stringify(profiles));
+    }
+
+    function refreshProfileDropdown(){
+        let select = document.getElementById("profileSelect");
+        select.innerHTML="";
+        getProfiles().forEach(p=>{
+            let opt=document.createElement("option");
+            opt.value=p;
+            opt.text=p;
+            select.appendChild(opt);
+        });
+    }
+
+    function createProfile(){
+        let name=document.getElementById("newProfileName").value.trim();
+        if(!name) return;
+
+        let profiles=getProfiles();
+        if(!profiles.includes(name)){
+            profiles.push(name);
+            saveProfiles(profiles);
+        }
+
+        refreshProfileDropdown();
+        document.getElementById("newProfileName").value="";
+    }
+
+    function loadSelectedProfile(){
+        let selected=document.getElementById("profileSelect").value;
+        if(!selected) return;
+
+        username=selected;
+        document.getElementById("currentUser").innerText="Profile: "+username;
+
+        stats=JSON.parse(localStorage.getItem("stats_"+username)) || {
             totalMatches:0,
             p1Wins:0,
             p2Wins:0,
             history:[]
         };
 
-        winningScore = parseInt(localStorage.getItem("win_"+username)) || 8;
-        document.getElementById("winInput").value = winningScore;
+        winningScore=parseInt(localStorage.getItem("win_"+username)) || 8;
+        document.getElementById("winInput").value=winningScore;
 
+        showScreen("tracker");
         updateStats();
         updateHistory();
     }
@@ -154,66 +194,102 @@
     }
 
     function setWinningScore(){
-        winningScore = parseInt(document.getElementById("winInput").value);
+        winningScore=parseInt(document.getElementById("winInput").value);
         localStorage.setItem("win_"+username, winningScore);
     }
 
     function showScreen(name){
         document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
         document.getElementById(name).classList.add("active");
-        updateStats();
-        updateHistory();
     }
 
     function updateUI(){
         document.getElementById("p1").innerText=p1;
         document.getElementById("p2").innerText=p2;
         document.getElementById("matchScore").innerText=matchP1+" - "+matchP2;
+
+        if(overtime){
+            document.getElementById("overtimeInfo").innerText="Overtime Turns Left: "+overtimeTurns;
+        } else {
+            document.getElementById("overtimeInfo").innerText="";
+        }
     }
 
-    function checkWin(){
-        if(p1>=winningScore || p2>=winningScore){
-
-            if(p1>p2) matchP1++;
-            else matchP2++;
-
-            p1=0;
-            p2=0;
-
-            if(matchP1==2 || matchP2==2){
-                let winner = matchP1==2?"Player 1":"Player 2";
-
-                stats.totalMatches++;
-                if(matchP1==2) stats.p1Wins++;
-                if(matchP2==2) stats.p2Wins++;
-
-                stats.history.unshift(winner+" won "+matchP1+"-"+matchP2);
-                save();
-
-                matchP1=0;
-                matchP2=0;
-            }
-        }
+    function startOvertime(){
+        overtime=true;
+        overtimeTurns=3;
         updateUI();
     }
 
+    function checkWin(){
+
+        if(overtime){
+            if(overtimeTurns<=0){
+                let diff=Math.abs(p1-p2);
+
+                if(diff>=2){
+                    if(p1>p2) matchP1++;
+                    else matchP2++;
+                } else {
+                    stats.history.unshift("Draw after overtime ("+p1+"-"+p2+")");
+                    save();
+                    resetGame();
+                    return;
+                }
+
+                p1=0; p2=0;
+                overtime=false;
+
+                if(matchP1==2 || matchP2==2){
+                    finalizeMatch();
+                }
+
+                updateUI();
+                return;
+            }
+        }
+
+        if(!overtime && (p1>=winningScore || p2>=winningScore)){
+            if(p1>p2) matchP1++;
+            else matchP2++;
+
+            p1=0; p2=0;
+
+            if(matchP1==2 || matchP2==2){
+                finalizeMatch();
+            }
+        }
+
+        updateUI();
+    }
+
+    function finalizeMatch(){
+        let winner=matchP1==2?"Player 1":"Player 2";
+
+        stats.totalMatches++;
+        if(matchP1==2) stats.p1Wins++;
+        if(matchP2==2) stats.p2Wins++;
+
+        stats.history.unshift(winner+" won "+matchP1+"-"+matchP2);
+        save();
+
+        matchP1=0; matchP2=0;
+    }
+
     function resetGame(){
-        p1=0;
-        p2=0;
-        matchP1=0;
-        matchP2=0;
+        p1=0; p2=0; matchP1=0; matchP2=0;
+        overtime=false;
+        overtimeTurns=3;
         updateUI();
     }
 
     function updateStats(){
-        if(!username) return;
         document.getElementById("totalMatches").innerText=stats.totalMatches;
         document.getElementById("p1WinsStat").innerText=stats.p1Wins;
         document.getElementById("p2WinsStat").innerText=stats.p2Wins;
     }
 
     function updateHistory(){
-        if(!username) return;
         let list=document.getElementById("historyList");
         list.innerHTML="";
         stats.history.forEach(h=>{
@@ -226,6 +302,9 @@
     function addScore(player){
         if(player==1) p1++;
         if(player==2) p2++;
+
+        if(overtime) overtimeTurns--;
+
         checkWin();
     }
 
@@ -237,22 +316,23 @@
 
     let pressTimer;
 
-    document.getElementById("p1").addEventListener("mousedown", ()=> {
+    document.getElementById("p1").addEventListener("mousedown", ()=>{
         pressTimer=setTimeout(()=>subtractScore(1),500);
     });
-    document.getElementById("p1").addEventListener("mouseup", ()=> {
+    document.getElementById("p1").addEventListener("mouseup", ()=>{
         clearTimeout(pressTimer);
         addScore(1);
     });
 
-    document.getElementById("p2").addEventListener("mousedown", ()=> {
+    document.getElementById("p2").addEventListener("mousedown", ()=>{
         pressTimer=setTimeout(()=>subtractScore(2),500);
     });
-    document.getElementById("p2").addEventListener("mouseup", ()=> {
+    document.getElementById("p2").addEventListener("mouseup", ()=>{
         clearTimeout(pressTimer);
         addScore(2);
     });
 
+    refreshProfileDropdown();
     updateUI();
 
 </script>
