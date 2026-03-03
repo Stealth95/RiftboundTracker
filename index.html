@@ -5,84 +5,20 @@
     <title>Riftbound Tracker</title>
 
     <style>
-        body{
-            margin:0;
-            font-family:Arial, sans-serif;
-            background:#0f172a;
-            color:white;
-        }
-
-        .menu{
-            display:flex;
-            justify-content:center;
-            gap:8px;
-            padding:10px;
-            background:#0b1220;
-            position:sticky;
-            top:0;
-            z-index:100;
-            flex-wrap:wrap;
-        }
-
-        button{
-            padding:8px 12px;
-            border:none;
-            border-radius:8px;
-            font-size:13px;
-            margin:4px;
-        }
-
-        .screen{
-            display:none;
-            padding:20px;
-            min-height:80vh;
-        }
-
-        .active{ display:block; }
-
-        .score-area{
-            height:22vh;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:60px;
-            font-weight:bold;
-            cursor:pointer;
-        }
-
-        .top{ background:#1e293b; }
-        .bottom{ background:#334155; }
-
-        .minus-btn{ background:#7f1d1d; }
-
-        .dice-box{
-            margin:10px 0;
-            font-size:20px;
-            font-weight:bold;
-        }
-
-        input, select{
-            padding:6px;
-            border-radius:6px;
-            border:none;
-        }
-
-        .overtime-box{
-            margin-top:10px;
-            color:#facc15;
-            font-weight:bold;
-        }
-
-        .admin-container{
-            margin-top:40px;
-            text-align:center;
-        }
-
-        .admin-btn{
-            background:#111827;
-            font-size:11px;
-            opacity:0.6;
-        }
+        body{margin:0;font-family:Arial;background:#0f172a;color:white;}
+        .menu{display:flex;justify-content:center;gap:8px;padding:10px;background:#0b1220;position:sticky;top:0;flex-wrap:wrap;}
+        button{padding:8px 12px;border:none;border-radius:8px;font-size:13px;margin:4px;}
+        .screen{display:none;padding:20px;min-height:80vh;}
+        .active{display:block;}
+        .score-area{height:22vh;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:bold;cursor:pointer;}
+        .top{background:#1e293b;}
+        .bottom{background:#334155;}
+        .minus-btn{background:#7f1d1d;}
+        .dice-box{margin:10px 0;font-size:18px;font-weight:bold;}
+        input,select{padding:6px;border-radius:6px;border:none;}
+        .overtime-box{margin-top:10px;color:#facc15;font-weight:bold;}
+        .admin-container{margin-top:40px;text-align:center;}
+        .admin-btn{background:#111827;font-size:11px;opacity:0.6;}
     </style>
 </head>
 <body>
@@ -101,13 +37,20 @@
     <button onclick="loadSelectedProfile()">Load</button>
     <hr>
     <h3>Create New Profile</h3>
-    <input type="text" id="newProfileName" placeholder="New profile name">
+    <input type="text" id="newProfileName">
     <button onclick="createProfile()">Create</button>
 </div>
 
 <!-- TRACKER -->
 <div id="tracker" class="screen">
+
     <h3 id="currentUser"></h3>
+
+    Opponent Name:
+    <input type="text" id="player2NameInput">
+    <button onclick="saveOpponent()">Save</button>
+
+    <br><br>
 
     Winning Score:
     <input type="number" id="winInput" min="1" value="8" style="width:60px;">
@@ -121,13 +64,15 @@
         <button onclick="rollDice()">Roll</button>
     </div>
 
+    <div id="p1Label"></div>
     <div class="score-area top" onclick="addScore(1)" id="p1">0</div>
-    <button class="minus-btn" onclick="subtractScore(1)">− Player 1</button>
+    <button class="minus-btn" onclick="subtractScore(1)">−</button>
 
     <br>
 
+    <div id="p2Label"></div>
     <div class="score-area bottom" onclick="addScore(2)" id="p2">0</div>
-    <button class="minus-btn" onclick="subtractScore(2)">− Player 2</button>
+    <button class="minus-btn" onclick="subtractScore(2)">−</button>
 
     <br>
 
@@ -142,9 +87,8 @@
 <div id="history" class="screen">
     <h2>Match History</h2>
     <ul id="historyList"></ul>
-
     <div class="admin-container">
-        <button class="admin-btn" onclick="adminReset()">Admin Reset</button>
+        <button class="admin-btn" onclick="adminReset()">Reset Stats</button>
     </div>
 </div>
 
@@ -152,11 +96,11 @@
 <div id="stats" class="screen">
     <h2>Stats</h2>
     Total Matches: <span id="totalMatches">0</span><br>
-    Player 1 Wins: <span id="p1WinsStat">0</span><br>
-    Player 2 Wins: <span id="p2WinsStat">0</span>
-
+    Wins: <span id="winStat">0</span><br>
+    Losses: <span id="lossStat">0</span><br>
+    Draws: <span id="drawStat">0</span>
     <div class="admin-container">
-        <button class="admin-btn" onclick="adminReset()">Admin Reset</button>
+        <button class="admin-btn" onclick="adminReset()">Reset Stats</button>
     </div>
 </div>
 
@@ -168,7 +112,18 @@
     let overtime=false;
     let overtimeTurns=3;
 
-    const ADMIN_CODE="riftboundadmin";
+    let stats={};
+    let player2Name="Opponent";
+
+    function fixStats(obj){
+        return {
+            totalMatches: obj.totalMatches||0,
+            wins: obj.wins||0,
+            losses: obj.losses||0,
+            draws: obj.draws||0,
+            history: obj.history||[]
+        };
+    }
 
     function openEvents(){
         window.open("https://locator.riftbound.uvsgames.com/my-events","_blank");
@@ -179,18 +134,23 @@
         document.getElementById("diceResult").innerText=roll;
     }
 
-    function getProfiles(){
-        return JSON.parse(localStorage.getItem("profiles"))||[];
-    }
-
-    function saveProfiles(p){
-        localStorage.setItem("profiles",JSON.stringify(p));
+    function createProfile(){
+        let name=document.getElementById("newProfileName").value.trim();
+        if(!name)return;
+        let profiles=JSON.parse(localStorage.getItem("profiles"))||[];
+        if(!profiles.includes(name)){
+            profiles.push(name);
+            localStorage.setItem("profiles",JSON.stringify(profiles));
+        }
+        refreshProfileDropdown();
+        document.getElementById("newProfileName").value="";
     }
 
     function refreshProfileDropdown(){
         let select=document.getElementById("profileSelect");
         select.innerHTML="";
-        getProfiles().forEach(p=>{
+        let profiles=JSON.parse(localStorage.getItem("profiles"))||[];
+        profiles.forEach(p=>{
             let opt=document.createElement("option");
             opt.value=p;
             opt.text=p;
@@ -198,41 +158,42 @@
         });
     }
 
-    function createProfile(){
-        let name=document.getElementById("newProfileName").value.trim();
-        if(!name)return;
-        let profiles=getProfiles();
-        if(!profiles.includes(name)){
-            profiles.push(name);
-            saveProfiles(profiles);
-        }
-        refreshProfileDropdown();
-        document.getElementById("newProfileName").value="";
-    }
-
     function loadSelectedProfile(){
-        let selected=document.getElementById("profileSelect").value;
-        if(!selected)return;
+        username=document.getElementById("profileSelect").value;
+        if(!username)return;
 
-        username=selected;
         document.getElementById("currentUser").innerText="Profile: "+username;
 
-        let data=JSON.parse(localStorage.getItem("stats_"+username));
-        if(!data){
-            data={totalMatches:0,p1Wins:0,p2Wins:0,history:[]};
-        }
-        window.stats=data;
+        let savedStats=JSON.parse(localStorage.getItem("stats_"+username))||{};
+        stats=fixStats(savedStats);
 
         winningScore=parseInt(localStorage.getItem("win_"+username))||8;
         document.getElementById("winInput").value=winningScore;
 
+        let savedOpponent=localStorage.getItem("opponent_"+username);
+        if(savedOpponent)player2Name=savedOpponent;
+
+        document.getElementById("player2NameInput").value=player2Name;
+
+        updateLabels();
         showScreen("tracker");
         updateStats();
         updateHistory();
     }
 
     function save(){
-        localStorage.setItem("stats_"+username,JSON.stringify(window.stats));
+        localStorage.setItem("stats_"+username,JSON.stringify(stats));
+    }
+
+    function saveOpponent(){
+        player2Name=document.getElementById("player2NameInput").value||"Opponent";
+        localStorage.setItem("opponent_"+username,player2Name);
+        updateLabels();
+    }
+
+    function updateLabels(){
+        document.getElementById("p1Label").innerText=username;
+        document.getElementById("p2Label").innerText=player2Name;
     }
 
     function setWinningScore(){
@@ -281,8 +242,9 @@
             if(p1>p2)matchP1++;
             else matchP2++;
         }else{
-            window.stats.history.unshift("Draw after overtime ("+p1+"-"+p2+")");
-            window.stats.totalMatches++;
+            stats.totalMatches++;
+            stats.draws++;
+            stats.history.unshift(username+" drew ("+p1+"-"+p2+") vs "+player2Name);
             save();
             resetGame();
             return;
@@ -306,11 +268,14 @@
     }
 
     function finalizeMatch(){
-        let winner=matchP1==2?"Player 1":"Player 2";
-        window.stats.totalMatches++;
-        if(matchP1==2)window.stats.p1Wins++;
-        if(matchP2==2)window.stats.p2Wins++;
-        window.stats.history.unshift(winner+" won 2-"+(winner==="Player 1"?matchP2:matchP1));
+        stats.totalMatches++;
+        if(matchP1==2){
+            stats.wins++;
+            stats.history.unshift(username+" won "+matchP1+"-"+matchP2+" vs "+player2Name);
+        }else{
+            stats.losses++;
+            stats.history.unshift(username+" lost "+matchP1+"-"+matchP2+" vs "+player2Name);
+        }
         save();
         matchP1=0;matchP2=0;
     }
@@ -321,17 +286,16 @@
     }
 
     function updateStats(){
-        if(!window.stats)return;
-        document.getElementById("totalMatches").innerText=window.stats.totalMatches||0;
-        document.getElementById("p1WinsStat").innerText=window.stats.p1Wins||0;
-        document.getElementById("p2WinsStat").innerText=window.stats.p2Wins||0;
+        document.getElementById("totalMatches").innerText=stats.totalMatches;
+        document.getElementById("winStat").innerText=stats.wins;
+        document.getElementById("lossStat").innerText=stats.losses;
+        document.getElementById("drawStat").innerText=stats.draws;
     }
 
     function updateHistory(){
-        if(!window.stats)return;
         let list=document.getElementById("historyList");
         list.innerHTML="";
-        (window.stats.history||[]).forEach(h=>{
+        stats.history.forEach(h=>{
             let li=document.createElement("li");
             li.innerText=h;
             list.appendChild(li);
@@ -339,16 +303,13 @@
     }
 
     function adminReset(){
-        let code=prompt("Enter admin code:");
-        if(code===ADMIN_CODE){
-            window.stats={totalMatches:0,p1Wins:0,p2Wins:0,history:[]};
-            save();
-            updateStats();
-            updateHistory();
-            alert("Reset complete.");
-        }else{
-            alert("Incorrect code.");
-        }
+        let confirmReset=confirm("Are you sure you want to reset ALL stats?");
+        if(!confirmReset)return;
+        stats={totalMatches:0,wins:0,losses:0,draws:0,history:[]};
+        save();
+        updateStats();
+        updateHistory();
+        alert("Stats reset.");
     }
 
     function addScore(player){
