@@ -5,60 +5,83 @@
     <title>Riftbound Tracker</title>
 
     <style>
-        body {
+        body{
             margin:0;
             font-family:Arial, sans-serif;
             background:#0f172a;
             color:white;
         }
 
-        .menu {
+        .menu{
             display:flex;
             justify-content:center;
-            gap:10px;
+            gap:8px;
             padding:10px;
             background:#0b1220;
             position:sticky;
             top:0;
             z-index:100;
+            flex-wrap:wrap;
         }
 
-        button {
-            padding:10px 15px;
+        button{
+            padding:8px 12px;
             border:none;
             border-radius:8px;
-            font-size:14px;
+            font-size:13px;
+            margin:4px;
         }
 
-        .screen {
+        .screen{
             display:none;
             padding:20px;
+            min-height:80vh;
         }
 
-        .active { display:block; }
+        .active{ display:block; }
 
-        .score-area {
-            height:30vh;
+        .score-area{
+            height:22vh;
             display:flex;
             align-items:center;
             justify-content:center;
             font-size:60px;
             font-weight:bold;
+            cursor:pointer;
         }
 
-        .top { background:#1e293b; }
-        .bottom { background:#334155; }
+        .top{ background:#1e293b; }
+        .bottom{ background:#334155; }
 
-        input, select {
+        .minus-btn{ background:#7f1d1d; }
+
+        .dice-box{
+            margin:10px 0;
+            font-size:20px;
+            font-weight:bold;
+        }
+
+        input, select{
             padding:6px;
             border-radius:6px;
             border:none;
         }
 
-        .overtime-box {
+        .overtime-box{
             margin-top:10px;
             color:#facc15;
             font-weight:bold;
+        }
+
+        .admin-container{
+            margin-top:40px;
+            text-align:center;
+        }
+
+        .admin-btn{
+            background:#111827;
+            font-size:11px;
+            opacity:0.6;
         }
     </style>
 </head>
@@ -68,17 +91,15 @@
     <button onclick="showScreen('tracker')">Tracker</button>
     <button onclick="showScreen('history')">History</button>
     <button onclick="showScreen('stats')">Stats</button>
+    <button onclick="openEvents()">Events</button>
 </div>
 
-<!-- PROFILE SCREEN -->
+<!-- PROFILE -->
 <div id="profile" class="screen active">
     <h2>Select Profile</h2>
-
     <select id="profileSelect"></select>
     <button onclick="loadSelectedProfile()">Load</button>
-
     <hr>
-
     <h3>Create New Profile</h3>
     <input type="text" id="newProfileName" placeholder="New profile name">
     <button onclick="createProfile()">Create</button>
@@ -88,62 +109,86 @@
 <div id="tracker" class="screen">
     <h3 id="currentUser"></h3>
 
-    <div>
-        Winning Score:
-        <input type="number" id="winInput" min="1" value="8" style="width:60px;">
-        <button onclick="setWinningScore()">Set</button>
-    </div>
+    Winning Score:
+    <input type="number" id="winInput" min="1" value="8" style="width:60px;">
+    <button onclick="setWinningScore()">Set</button>
 
     <h3>Best of 3</h3>
-    <div>Match Score: <span id="matchScore">0 - 0</span></div>
+    Match Score: <span id="matchScore">0 - 0</span>
+
+    <div class="dice-box">
+        🎲 D20: <span id="diceResult">-</span>
+        <button onclick="rollDice()">Roll</button>
+    </div>
+
+    <div class="score-area top" onclick="addScore(1)" id="p1">0</div>
+    <button class="minus-btn" onclick="subtractScore(1)">− Player 1</button>
 
     <br>
 
-    <div class="score-area top" id="p1">0</div>
-    <div class="score-area bottom" id="p2">0</div>
+    <div class="score-area bottom" onclick="addScore(2)" id="p2">0</div>
+    <button class="minus-btn" onclick="subtractScore(2)">− Player 2</button>
 
     <br>
+
     <button onclick="resetGame()">Reset Game</button>
     <button onclick="startOvertime()">Start Overtime</button>
+    <button id="nextTurnBtn" onclick="nextTurn()" style="display:none;">Next Turn</button>
 
     <div id="overtimeInfo" class="overtime-box"></div>
-
 </div>
 
 <!-- HISTORY -->
 <div id="history" class="screen">
     <h2>Match History</h2>
     <ul id="historyList"></ul>
+
+    <div class="admin-container">
+        <button class="admin-btn" onclick="adminReset()">Admin Reset</button>
+    </div>
 </div>
 
 <!-- STATS -->
 <div id="stats" class="screen">
     <h2>Stats</h2>
-    <div>Total Matches: <span id="totalMatches">0</span></div>
-    <div>Player 1 Wins: <span id="p1WinsStat">0</span></div>
-    <div>Player 2 Wins: <span id="p2WinsStat">0</span></div>
+    Total Matches: <span id="totalMatches">0</span><br>
+    Player 1 Wins: <span id="p1WinsStat">0</span><br>
+    Player 2 Wins: <span id="p2WinsStat">0</span>
+
+    <div class="admin-container">
+        <button class="admin-btn" onclick="adminReset()">Admin Reset</button>
+    </div>
 </div>
 
 <script>
 
-    let username = null;
-    let p1=0, p2=0, matchP1=0, matchP2=0;
-    let winningScore = 8;
-    let stats = {};
+    let username=null;
+    let p1=0,p2=0,matchP1=0,matchP2=0;
+    let winningScore=8;
+    let overtime=false;
+    let overtimeTurns=3;
 
-    let overtime = false;
-    let overtimeTurns = 3;
+    const ADMIN_CODE="riftboundadmin";
 
-    function getProfiles(){
-        return JSON.parse(localStorage.getItem("profiles")) || [];
+    function openEvents(){
+        window.open("https://locator.riftbound.uvsgames.com/my-events","_blank");
     }
 
-    function saveProfiles(profiles){
-        localStorage.setItem("profiles", JSON.stringify(profiles));
+    function rollDice(){
+        let roll=Math.floor(Math.random()*20)+1;
+        document.getElementById("diceResult").innerText=roll;
+    }
+
+    function getProfiles(){
+        return JSON.parse(localStorage.getItem("profiles"))||[];
+    }
+
+    function saveProfiles(p){
+        localStorage.setItem("profiles",JSON.stringify(p));
     }
 
     function refreshProfileDropdown(){
-        let select = document.getElementById("profileSelect");
+        let select=document.getElementById("profileSelect");
         select.innerHTML="";
         getProfiles().forEach(p=>{
             let opt=document.createElement("option");
@@ -155,33 +200,30 @@
 
     function createProfile(){
         let name=document.getElementById("newProfileName").value.trim();
-        if(!name) return;
-
+        if(!name)return;
         let profiles=getProfiles();
         if(!profiles.includes(name)){
             profiles.push(name);
             saveProfiles(profiles);
         }
-
         refreshProfileDropdown();
         document.getElementById("newProfileName").value="";
     }
 
     function loadSelectedProfile(){
         let selected=document.getElementById("profileSelect").value;
-        if(!selected) return;
+        if(!selected)return;
 
         username=selected;
         document.getElementById("currentUser").innerText="Profile: "+username;
 
-        stats=JSON.parse(localStorage.getItem("stats_"+username)) || {
-            totalMatches:0,
-            p1Wins:0,
-            p2Wins:0,
-            history:[]
-        };
+        let data=JSON.parse(localStorage.getItem("stats_"+username));
+        if(!data){
+            data={totalMatches:0,p1Wins:0,p2Wins:0,history:[]};
+        }
+        window.stats=data;
 
-        winningScore=parseInt(localStorage.getItem("win_"+username)) || 8;
+        winningScore=parseInt(localStorage.getItem("win_"+username))||8;
         document.getElementById("winInput").value=winningScore;
 
         showScreen("tracker");
@@ -190,17 +232,19 @@
     }
 
     function save(){
-        localStorage.setItem("stats_"+username, JSON.stringify(stats));
+        localStorage.setItem("stats_"+username,JSON.stringify(window.stats));
     }
 
     function setWinningScore(){
         winningScore=parseInt(document.getElementById("winInput").value);
-        localStorage.setItem("win_"+username, winningScore);
+        localStorage.setItem("win_"+username,winningScore);
     }
 
     function showScreen(name){
         document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
         document.getElementById(name).classList.add("active");
+        updateStats();
+        updateHistory();
     }
 
     function updateUI(){
@@ -209,9 +253,11 @@
         document.getElementById("matchScore").innerText=matchP1+" - "+matchP2;
 
         if(overtime){
-            document.getElementById("overtimeInfo").innerText="Overtime Turns Left: "+overtimeTurns;
-        } else {
+            document.getElementById("overtimeInfo").innerText="Overtime Turns Remaining: "+overtimeTurns;
+            document.getElementById("nextTurnBtn").style.display="inline-block";
+        }else{
             document.getElementById("overtimeInfo").innerText="";
+            document.getElementById("nextTurnBtn").style.display="none";
         }
     }
 
@@ -221,116 +267,102 @@
         updateUI();
     }
 
-    function checkWin(){
-
-        if(overtime){
-            if(overtimeTurns<=0){
-                let diff=Math.abs(p1-p2);
-
-                if(diff>=2){
-                    if(p1>p2) matchP1++;
-                    else matchP2++;
-                } else {
-                    stats.history.unshift("Draw after overtime ("+p1+"-"+p2+")");
-                    save();
-                    resetGame();
-                    return;
-                }
-
-                p1=0; p2=0;
-                overtime=false;
-
-                if(matchP1==2 || matchP2==2){
-                    finalizeMatch();
-                }
-
-                updateUI();
-                return;
-            }
-        }
-
-        if(!overtime && (p1>=winningScore || p2>=winningScore)){
-            if(p1>p2) matchP1++;
-            else matchP2++;
-
-            p1=0; p2=0;
-
-            if(matchP1==2 || matchP2==2){
-                finalizeMatch();
-            }
-        }
-
+    function nextTurn(){
+        if(!overtime)return;
+        overtimeTurns--;
+        if(overtimeTurns<=0)evaluateOvertime();
         updateUI();
+    }
+
+    function evaluateOvertime(){
+        let diff=Math.abs(p1-p2);
+
+        if(diff>=2){
+            if(p1>p2)matchP1++;
+            else matchP2++;
+        }else{
+            window.stats.history.unshift("Draw after overtime ("+p1+"-"+p2+")");
+            window.stats.totalMatches++;
+            save();
+            resetGame();
+            return;
+        }
+
+        p1=0;p2=0;overtime=false;
+
+        if(matchP1==2||matchP2==2)finalizeMatch();
+
+        updateStats();
+        updateHistory();
+    }
+
+    function checkNormalWin(){
+        if(p1>=winningScore||p2>=winningScore){
+            if(p1>p2)matchP1++;
+            else matchP2++;
+            p1=0;p2=0;
+            if(matchP1==2||matchP2==2)finalizeMatch();
+        }
     }
 
     function finalizeMatch(){
         let winner=matchP1==2?"Player 1":"Player 2";
-
-        stats.totalMatches++;
-        if(matchP1==2) stats.p1Wins++;
-        if(matchP2==2) stats.p2Wins++;
-
-        stats.history.unshift(winner+" won "+matchP1+"-"+matchP2);
+        window.stats.totalMatches++;
+        if(matchP1==2)window.stats.p1Wins++;
+        if(matchP2==2)window.stats.p2Wins++;
+        window.stats.history.unshift(winner+" won 2-"+(winner==="Player 1"?matchP2:matchP1));
         save();
-
-        matchP1=0; matchP2=0;
+        matchP1=0;matchP2=0;
     }
 
     function resetGame(){
-        p1=0; p2=0; matchP1=0; matchP2=0;
-        overtime=false;
-        overtimeTurns=3;
+        p1=0;p2=0;matchP1=0;matchP2=0;overtime=false;overtimeTurns=3;
         updateUI();
     }
 
     function updateStats(){
-        document.getElementById("totalMatches").innerText=stats.totalMatches;
-        document.getElementById("p1WinsStat").innerText=stats.p1Wins;
-        document.getElementById("p2WinsStat").innerText=stats.p2Wins;
+        if(!window.stats)return;
+        document.getElementById("totalMatches").innerText=window.stats.totalMatches||0;
+        document.getElementById("p1WinsStat").innerText=window.stats.p1Wins||0;
+        document.getElementById("p2WinsStat").innerText=window.stats.p2Wins||0;
     }
 
     function updateHistory(){
+        if(!window.stats)return;
         let list=document.getElementById("historyList");
         list.innerHTML="";
-        stats.history.forEach(h=>{
+        (window.stats.history||[]).forEach(h=>{
             let li=document.createElement("li");
             li.innerText=h;
             list.appendChild(li);
         });
     }
 
-    function addScore(player){
-        if(player==1) p1++;
-        if(player==2) p2++;
-
-        if(overtime) overtimeTurns--;
-
-        checkWin();
+    function adminReset(){
+        let code=prompt("Enter admin code:");
+        if(code===ADMIN_CODE){
+            window.stats={totalMatches:0,p1Wins:0,p2Wins:0,history:[]};
+            save();
+            updateStats();
+            updateHistory();
+            alert("Reset complete.");
+        }else{
+            alert("Incorrect code.");
+        }
     }
 
-    function subtractScore(player){
-        if(player==1 && p1>0) p1--;
-        if(player==2 && p2>0) p2--;
+    function addScore(player){
+        if(player==1)p1++;
+        if(player==2)p2++;
+        if(!overtime)checkNormalWin();
         updateUI();
     }
 
-    let pressTimer;
-
-    document.getElementById("p1").addEventListener("mousedown", ()=>{
-        pressTimer=setTimeout(()=>subtractScore(1),500);
-    });
-    document.getElementById("p1").addEventListener("mouseup", ()=>{
-        clearTimeout(pressTimer);
-        addScore(1);
-    });
-
-    document.getElementById("p2").addEventListener("mousedown", ()=>{
-        pressTimer=setTimeout(()=>subtractScore(2),500);
-    });
-    document.getElementById("p2").addEventListener("mouseup", ()=>{
-        clearTimeout(pressTimer);
-        addScore(2);
-    });
+    function subtractScore(player){
+        if(player==1&&p1>0)p1--;
+        if(player==2&&p2>0)p2--;
+        updateUI();
+    }
 
     refreshProfileDropdown();
     updateUI();
