@@ -1,0 +1,2615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1b1031">
+  <meta name="description" content="Riftbound tabletop score, XP, deck library, timer and match history tracker">
+  <link rel="manifest" href="manifest.json?v=49">
+  <link rel="icon" type="image/png" sizes="192x192" href="AhriFoxIcon192_v49.png?v=49">
+  <link rel="apple-touch-icon" sizes="180x180" href="AhriFoxIcon180_v49.png?v=49">
+  <title>Riftbound Tracker · Ahri Edition</title>
+
+  <style>
+    :root {
+      --bg: #090713;
+      --bg-2: #140b24;
+      --panel: rgba(24,18,40,.96);
+      --panel-2: rgba(31,22,54,.97);
+      --panel-3: rgba(18,15,40,.98);
+      --text: #fff8fe;
+      --muted: #d8cfe6;
+      --line: rgba(176,151,228,.20);
+      --accent: #ff67c4;
+      --accent-2: #7df1ff;
+      --accent-3: #8b6bff;
+      --gold: #f6d48a;
+      --danger: #ff6487;
+      --success: #44d9b8;
+      --warning: #f6c96a;
+      --shadow: 0 18px 42px rgba(0,0,0,.36);
+      --glow-pink: 0 0 28px rgba(255,103,196,.20);
+      --glow-cyan: 0 0 28px rgba(125,241,255,.16);
+      --radius: 22px;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(255,103,196,.22), transparent 24%),
+        radial-gradient(circle at 88% 10%, rgba(125,241,255,.17), transparent 20%),
+        radial-gradient(circle at 50% 0%, rgba(139,107,255,.14), transparent 34%),
+        linear-gradient(180deg, #1a0f2f 0%, #0f0a1d 22%, var(--bg) 100%);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { touch-action: manipulation; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid rgba(245,138,7,.45);
+      outline-offset: 2px;
+    }
+
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); }
+    .small { font-size: .84rem; }
+    .nowrap { white-space: nowrap; }
+    .shell { width: min(100%, 980px); margin: 0 auto; min-height: 100dvh; }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      padding-top: calc(10px + env(safe-area-inset-top));
+      background: linear-gradient(180deg, rgba(22,12,39,.95), rgba(18,11,34,.88));
+      border-bottom: 1px solid rgba(176,151,228,.22);
+      box-shadow: 0 8px 24px rgba(0,0,0,.26);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      object-fit: cover;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.10), var(--glow-pink);
+    }
+    .brand-copy { min-width: 0; flex: 1; }
+    .brand-title { font-weight: 850; letter-spacing: .01em; }
+    .brand-subtitle { color: var(--muted); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .icon-button, .compact-button {
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      border-radius: 14px;
+      min-height: 42px;
+      padding: 9px 12px;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .icon-button:hover, .compact-button:hover { background: rgba(255,255,255,.12); }
+
+    main { padding: 16px 14px 100px; }
+    .screen { display: none; animation: fade-in .16s ease-out; }
+    .screen.active { display: block; }
+    @keyframes fade-in { from { opacity: .3; transform: translateY(4px); } }
+
+    .hero { text-align: center; padding: 30px 18px 20px; }
+    .hero img { width: 118px; height: 118px; border-radius: 28px; box-shadow: var(--shadow), var(--glow-pink), var(--glow-cyan); }
+    .hero h1 { margin: 18px 0 4px; font-size: 1.75rem; }
+    .hero p { margin: 0; color: var(--muted); }
+
+    .card {
+      background: linear-gradient(180deg, rgba(38,24,66,.96), rgba(19,14,38,.98));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .card.flat { box-shadow: none; }
+    .card h2, .card h3 { margin-top: 0; }
+    .section-title { margin: 8px 2px 12px; font-size: 1.12rem; }
+
+    .field-grid { display: grid; gap: 12px; }
+    .field-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .field-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    label.field { display: grid; gap: 6px; color: var(--muted); font-size: .82rem; font-weight: 700; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--text);
+      background: rgba(0,0,0,.24);
+      padding: 11px 12px;
+      min-height: 44px;
+    }
+    textarea { resize: vertical; min-height: 88px; }
+
+    .button-row { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
+    .button-row > button { flex: 1 1 auto; }
+    .primary, .secondary, .danger, .success {
+      border: 0;
+      border-radius: 13px;
+      min-height: 46px;
+      padding: 11px 15px;
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .primary { background: linear-gradient(135deg, var(--accent), #ff8ae4 58%, var(--accent-2)); color: #230e26; box-shadow: var(--glow-pink); }
+    .secondary { background: rgba(255,255,255,.09); border: 1px solid var(--line); }
+    .secondary.primary { background: linear-gradient(135deg, var(--accent), #ff8ae4 58%, var(--accent-2)); color: #230e26; border-color: transparent; }
+    .danger { background: linear-gradient(135deg, #ff6487, #ff8aa4); color:#2c0813; }
+    .success { background: linear-gradient(135deg, var(--success), var(--accent-2)); color:#102022; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .setup-summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; }
+    details.setup-card > summary { list-style: none; }
+    details.setup-card > summary::-webkit-details-marker { display: none; }
+
+    .match-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+    .match-chip { background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border: 1px solid var(--line); border-radius: 16px; padding: 10px 6px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+    .match-chip strong { display: block; font-size: 1.22rem; margin-top: 2px; }
+    .match-chip span { color: var(--gold); font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+
+    .scoreboard { display: grid; gap: 13px; }
+    .player-card {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto minmax(112px, 1fr) auto;
+      min-height: 252px;
+      border-radius: 24px;
+      border: 1px solid rgba(176,151,228,.24);
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(47,28,84,.95), rgba(21,15,40,.98));
+      box-shadow: var(--shadow);
+      transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+    }
+    .player-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 18% 10%, rgba(255,103,196,.13), transparent 30%), radial-gradient(circle at 82% 22%, rgba(125,241,255,.10), transparent 26%);
+      pointer-events: none;
+    }
+    .player-card.opponent { background: linear-gradient(180deg, rgba(30,28,74,.96), rgba(17,15,37,.98)); }
+    .player-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 16px 4px; }
+    .player-name { font-size: 1.03rem; font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .game-wins { color: var(--gold); font-size: .8rem; white-space: nowrap; font-weight: 800; }
+
+    .score-controls {
+      display: grid;
+      grid-template-columns: minmax(86px, 1fr) minmax(150px, 1.24fr) minmax(86px, 1fr);
+      align-items: stretch;
+      width: 100%;
+      min-height: 0;
+      margin: 0;
+      padding: 12px 14px 10px;
+      gap: 12px;
+    }
+    .score-button {
+      position: relative;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 24px;
+      color: white;
+      font-size: clamp(1.2rem, 3.6vw, 1.6rem);
+      font-weight: 950;
+      letter-spacing: .02em;
+      cursor: pointer;
+      min-height: 128px;
+      height: 100%;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 10px 22px rgba(0,0,0,.22);
+    }
+    .score-button.minus { background: linear-gradient(180deg, rgba(255,100,135,.82), rgba(144,39,92,.90)); }
+    .score-button.plus { background: linear-gradient(180deg, rgba(125,241,255,.86), rgba(111,106,255,.92)); color: #101227; }
+    .score-button:active, .xp-button:active { transform: scale(.97); }
+    .score-display {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      place-items: center;
+      background: radial-gradient(circle at 50% 22%, rgba(125,241,255,.20), rgba(255,103,196,.12) 40%, rgba(0,0,0,.18) 72%), linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      border: 1px solid rgba(176,151,228,.26);
+      border-radius: 28px;
+      min-height: 128px;
+      height: 100%;
+      padding: 8px 10px;
+      overflow: visible;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), var(--glow-pink), var(--glow-cyan);
+    }
+    .score-display::before {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.08);
+      pointer-events: none;
+    }
+    .resource-label { color: var(--gold); font-size: .68rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+    .score-value { display: grid; place-items: center; font-size: clamp(3.2rem, 10vw, 5rem); font-weight: 950; line-height: 1; font-variant-numeric: tabular-nums; user-select: none; text-shadow: 0 0 18px rgba(125,241,255,.16), 0 0 14px rgba(255,103,196,.10); }
+
+    .xp-controls {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr 1fr 1fr 1fr;
+      grid-template-areas:
+        "head head head head head"
+        "minus value plus1 plus2 plus3";
+      align-items: stretch;
+      width: 100%;
+      gap: 8px;
+      padding: 2px 14px 16px;
+    }
+    .xp-controls > :nth-child(1) { grid-area: head; }
+    .xp-controls > :nth-child(2) { grid-area: minus; }
+    .xp-controls > :nth-child(3) { grid-area: value; }
+    .xp-controls > :nth-child(4) { grid-area: plus1; }
+    .xp-controls > :nth-child(5) { grid-area: plus2; }
+    .xp-controls > :nth-child(6) { grid-area: plus3; }
+    .xp-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 2px 2px;
+      color: var(--gold);
+      font-size: .76rem;
+      font-weight: 900;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .xp-heading::after {
+      content: "Foxfire";
+      color: var(--accent-2);
+      font-size: .66rem;
+      letter-spacing: .14em;
+    }
+    .xp-button {
+      min-height: 58px;
+      border: 1px solid rgba(176,151,228,.22);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      color: var(--text);
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .xp-button.gain { background: linear-gradient(180deg, rgba(125,241,255,.18), rgba(255,103,196,.14)); color: var(--accent-2); }
+    .xp-value {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 58px;
+      border: 1px solid rgba(125,241,255,.30);
+      border-radius: 20px;
+      background: radial-gradient(circle at 50% 20%, rgba(125,241,255,.24), rgba(255,103,196,.16) 56%, rgba(255,255,255,.04) 100%);
+      color: var(--text);
+      font-size: 1.95rem;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), var(--glow-cyan);
+    }
+    .xp-value::after { content: "tap"; position: absolute; right: 7px; bottom: 3px; font-size: .48rem; color: rgba(255,255,255,.58); font-weight: 800; letter-spacing: .08em; }
+
+    .delta-pop {
+      position: absolute;
+      z-index: 6;
+      left: 50%;
+      top: 20%;
+      transform: translate(-50%, 0);
+      font-size: 1.25rem;
+      font-weight: 950;
+      color: var(--accent-2);
+      pointer-events: none;
+      animation: pop-up .65s ease-out forwards;
+      text-shadow: 0 2px 8px rgba(0,0,0,.6);
+    }
+    .delta-pop.negative { color: #ff929c; }
+    @keyframes pop-up { to { opacity: 0; transform: translate(-50%, -36px) scale(1.15); } }
+
+    .timer-strip {
+      display: grid;
+      grid-template-columns: 44px auto minmax(0, 1fr) 40px;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0 14px;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    }
+    .timer-toggle, .timer-reset {
+      width: 40px;
+      height: 40px;
+      min-height: 40px;
+      padding: 0;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-weight: 950;
+      cursor: pointer;
+    }
+    .timer-toggle { background: linear-gradient(180deg, rgba(125,241,255,.18), rgba(255,103,196,.14)); color: var(--accent-2); border-color: rgba(125,241,255,.26); }
+    .timer-reset { background: transparent; color: var(--muted); }
+    .timer-copy { min-width: 92px; }
+    .timer-label { display: block; color: var(--muted); font-size: .62rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+    .timer-display { font-size: 1.65rem; font-weight: 950; letter-spacing: .03em; font-variant-numeric: tabular-nums; line-height: 1.05; }
+    .timer-display.warning { color: #fde68a; }
+    .timer-display.urgent { color: #ff929c; animation: timer-pulse 1s infinite; }
+    .timer-status { color: var(--muted); font-size: .76rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @keyframes timer-pulse { 50% { opacity: .55; } }
+
+    .quick-actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 14px 0; }
+    .quick-actions button { min-height: 52px; padding: 8px; }
+
+    .overtime-banner { border: 1px solid rgba(246,212,138,.30); background: linear-gradient(180deg, rgba(246,212,138,.12), rgba(255,103,196,.10)); color: #fff0cb; padding: 13px; border-radius: 16px; margin: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+    details { border: 1px solid var(--line); border-radius: 14px; background: rgba(0,0,0,.14); margin-top: 12px; }
+    summary { cursor: pointer; padding: 13px 14px; font-weight: 800; }
+    details > .details-body { padding: 0 14px 14px; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .stat-card { border: 1px solid var(--line); border-radius: 15px; padding: 13px; background: rgba(0,0,0,.18); }
+    .stat-card span { color: var(--muted); font-size: .78rem; font-weight: 750; }
+    .stat-card strong { display: block; margin-top: 5px; font-size: 1.55rem; font-variant-numeric: tabular-nums; }
+    .breakdown-grid { display: grid; gap: 12px; margin-top: 14px; }
+    .breakdown-card { border: 1px solid var(--line); border-radius: 15px; padding: 13px; background: rgba(0,0,0,.16); }
+    .breakdown-card h3 { margin: 0 0 10px; font-size: .95rem; }
+    .breakdown-list { display: grid; gap: 7px; }
+    .breakdown-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 9px; align-items: center; font-size: .82rem; }
+    .breakdown-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .breakdown-row span { color: var(--muted); }
+
+    .history-tools { display: grid; grid-template-columns: 1fr 140px; gap: 9px; margin-bottom: 12px; }
+    .history-list { display: grid; gap: 10px; }
+    .history-item { border: 1px solid var(--line); border-radius: 15px; background: rgba(0,0,0,.17); padding: 13px; }
+    .history-top { display: flex; align-items: flex-start; gap: 9px; }
+    .history-main { flex: 1; min-width: 0; }
+    .history-main strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .history-meta { color: var(--muted); font-size: .78rem; margin-top: 4px; line-height: 1.5; }
+    .history-note { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.05); font-size: .8rem; line-height: 1.45; }
+    .history-edit { flex: 0 0 auto; min-height: 36px; padding: 6px 10px; }
+    .result-badge { display: inline-grid; place-items: center; min-width: 34px; min-height: 34px; border-radius: 10px; font-weight: 900; font-size: .8rem; }
+    .result-badge.win { background: rgba(34,160,107,.20); color: #67e6ae; }
+    .result-badge.loss { background: rgba(184,58,69,.20); color: #ff929c; }
+    .result-badge.draw { background: rgba(234,179,8,.18); color: #fde68a; }
+    .empty-state { text-align: center; color: var(--muted); padding: 30px 12px; }
+
+    .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 10px 0; }
+    .switch-row input { width: 22px; height: 22px; min-height: 0; }
+    .setting-block + .setting-block { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 14px; }
+    .preset-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+
+
+    .header-tabletop {
+      white-space: nowrap;
+      color: var(--accent-2);
+      border-color: rgba(125,241,255,.26);
+      background: linear-gradient(180deg, rgba(125,241,255,.10), rgba(255,103,196,.08));
+      font-weight: 850;
+    }
+    .help-callout {
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.045);
+      color: var(--muted);
+      font-size: .8rem;
+      line-height: 1.45;
+    }
+    .tabletop-dice-result { display: none; margin-left: 4px; color: var(--accent-2); }
+
+    .deck-toolbar { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 9px; margin-bottom: 12px; }
+    .deck-list { display: grid; gap: 11px; }
+    .deck-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(0,0,0,.17);
+      padding: 14px;
+    }
+    .deck-card-top { display: flex; align-items: flex-start; gap: 10px; }
+    .deck-card-main { flex: 1; min-width: 0; }
+    .deck-card h3 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .deck-meta { color: var(--muted); font-size: .78rem; margin-top: 5px; line-height: 1.45; }
+    .deck-performance {
+      display: grid;
+      gap: 9px;
+      margin-top: 12px;
+      padding: 11px 12px;
+      border: 1px solid rgba(125,241,255,.16);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(125,241,255,.055), rgba(255,103,196,.035));
+    }
+    .deck-performance-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .deck-performance-summary strong { font-size: .88rem; }
+    .deck-performance-record { color: var(--muted); font-size: .76rem; font-weight: 800; }
+    .deck-winrate-pill {
+      display: inline-grid;
+      place-items: center;
+      min-width: 58px;
+      min-height: 32px;
+      padding: 5px 9px;
+      border: 1px solid rgba(125,241,255,.26);
+      border-radius: 999px;
+      background: rgba(125,241,255,.09);
+      color: var(--accent-2);
+      font-size: .82rem;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+    .deck-matchups { display: grid; gap: 6px; }
+    .deck-matchups-title {
+      color: var(--gold);
+      font-size: .68rem;
+      font-weight: 900;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+    }
+    .deck-matchup-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 8px;
+      border-radius: 10px;
+      background: rgba(0,0,0,.16);
+      font-size: .76rem;
+    }
+    .deck-matchup-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .deck-matchup-row span { color: var(--muted); white-space: nowrap; }
+    .deck-matchup-rate { color: var(--accent-2) !important; font-weight: 900; }
+    .deck-no-stats { color: var(--muted); font-size: .76rem; line-height: 1.4; }
+    .deck-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 11px; }
+    .deck-actions button { flex: 1 1 105px; min-height: 40px; padding: 7px 10px; }
+    .deck-preview {
+      margin-top: 12px;
+      padding: 11px 12px;
+      max-height: 210px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(0,0,0,.20);
+      color: var(--muted);
+      font: .78rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+    }
+    .deck-import-status { margin-top: 9px; color: var(--muted); font-size: .8rem; line-height: 1.4; }
+    .deck-import-status.good { color: #67e6ae; }
+    .deck-import-status.warn { color: #fde68a; }
+
+    .field-hint {
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+    .deck-combobox {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 46px;
+      gap: 7px;
+      width: 100%;
+    }
+    .deck-combobox > input { min-width: 0; }
+    .deck-dropdown-toggle {
+      min-height: 44px;
+      border: 1px solid rgba(125,241,255,.28);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(125,241,255,.15), rgba(255,103,196,.10));
+      color: var(--accent-2);
+      font-size: 1.3rem;
+      font-weight: 950;
+      cursor: pointer;
+    }
+    .deck-dropdown-toggle[aria-expanded="true"] { transform: rotate(180deg); }
+    .deck-dropdown-menu {
+      position: absolute;
+      z-index: 75;
+      top: calc(100% + 7px);
+      left: 0;
+      right: 0;
+      max-height: 270px;
+      overflow-y: auto;
+      padding: 7px;
+      border: 1px solid rgba(176,151,228,.30);
+      border-radius: 15px;
+      background: linear-gradient(180deg, rgba(37,24,65,.99), rgba(17,12,33,.99));
+      box-shadow: 0 20px 46px rgba(0,0,0,.48), var(--glow-pink);
+      backdrop-filter: blur(18px);
+    }
+    .deck-dropdown-option {
+      display: block;
+      width: 100%;
+      min-height: 50px;
+      padding: 9px 11px;
+      border: 0;
+      border-radius: 11px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+    .deck-dropdown-option:hover,
+    .deck-dropdown-option:focus-visible {
+      background: linear-gradient(90deg, rgba(255,103,196,.15), rgba(125,241,255,.11));
+    }
+    .deck-dropdown-option strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: .88rem;
+    }
+    .deck-dropdown-option span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: .69rem;
+      font-weight: 650;
+    }
+    .deck-dropdown-empty {
+      padding: 12px;
+      color: var(--muted);
+      font-size: .78rem;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      z-index: 30;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: min(100%, 980px);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+      background: rgba(7,19,31,.95);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+    .nav-button { border: 0; border-radius: 12px; background: transparent; color: var(--muted); min-height: 52px; font-size: .72rem; font-weight: 800; cursor: pointer; }
+    .nav-button span { display: block; font-size: 1.18rem; line-height: 1.2; margin-bottom: 2px; }
+    .nav-button.active { color: var(--accent-2); background: linear-gradient(180deg, rgba(125,241,255,.10), rgba(255,103,196,.08)); }
+
+    .toast {
+      position: fixed;
+      z-index: 80;
+      left: 50%;
+      bottom: calc(82px + env(safe-area-inset-bottom));
+      transform: translate(-50%, 18px);
+      width: min(calc(100% - 28px), 480px);
+      border-radius: 14px;
+      padding: 12px 15px;
+      background: linear-gradient(135deg, #ffe2f3, #d8fbff);
+      color: #221027;
+      font-weight: 800;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+      box-shadow: var(--shadow);
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    body.timer-expired-flash::before {
+      content: "TIME";
+      position: fixed;
+      z-index: 120;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(184,58,69,.78);
+      color: white;
+      font-size: clamp(4rem, 24vw, 10rem);
+      font-weight: 950;
+      letter-spacing: .08em;
+      pointer-events: none;
+      animation: time-flash 1.8s ease-out forwards;
+    }
+    @keyframes time-flash { 0%,35% { opacity: 1; } 100% { opacity: 0; } }
+
+    dialog {
+      width: min(calc(100% - 24px), 680px);
+      max-height: min(92dvh, 860px);
+      overflow: auto;
+      border: 1px solid rgba(176,151,228,.34);
+      border-radius: 26px;
+      padding: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255,103,196,.20), transparent 32%),
+        radial-gradient(circle at 88% 8%, rgba(125,241,255,.14), transparent 28%),
+        linear-gradient(180deg, #251642 0%, #17102d 48%, #0d0a19 100%);
+      box-shadow: 0 34px 100px rgba(0,0,0,.68), 0 0 42px rgba(255,103,196,.12), 0 0 34px rgba(125,241,255,.08);
+    }
+    dialog::backdrop { background: rgba(5,3,12,.82); backdrop-filter: blur(8px); }
+    #deckDialog { width: min(calc(100% - 24px), 740px); }
+    #historyDialog { width: min(calc(100% - 24px), 700px); }
+    .dialog-body {
+      position: relative;
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,.025), transparent 26%);
+    }
+    .dialog-body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 25px;
+      pointer-events: none;
+      border: 1px solid rgba(255,255,255,.035);
+    }
+    .dialog-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: -20px -20px 18px;
+      padding: 16px 18px;
+      background: linear-gradient(180deg, rgba(37,22,66,.98), rgba(25,15,46,.94));
+      border-bottom: 1px solid rgba(176,151,228,.22);
+      backdrop-filter: blur(14px);
+    }
+    .dialog-head h2 {
+      margin: 0;
+      font-size: 1.18rem;
+      letter-spacing: .02em;
+      background: linear-gradient(90deg, #fff7fc, #ff9edc 54%, #9cf7ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .dialog-close {
+      min-height: 40px;
+      min-width: 40px;
+      padding: 5px;
+      border-color: rgba(255,103,196,.24);
+      background: rgba(255,255,255,.06);
+    }
+    dialog input, dialog select, dialog textarea {
+      background: rgba(5,3,15,.50);
+      border-color: rgba(176,151,228,.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+    }
+    dialog input:focus, dialog select:focus, dialog textarea:focus {
+      border-color: rgba(125,241,255,.48);
+      box-shadow: 0 0 0 3px rgba(125,241,255,.10), 0 0 20px rgba(255,103,196,.08);
+    }
+    dialog .deck-preview {
+      background: rgba(5,3,15,.56);
+      border-color: rgba(125,241,255,.18);
+    }
+    .dialog-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 9px;
+      margin-top: 14px;
+    }
+    .dialog-actions button { min-height: 47px; }
+    .dialog-actions .full { grid-column: 1 / -1; }
+    .xp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .xp-grid button { min-height: 48px; }
+    @media (max-width: 520px) {
+      dialog { width: calc(100% - 14px); max-height: 94dvh; border-radius: 22px; }
+      .dialog-body { padding: 16px; }
+      .dialog-head { margin: -16px -16px 16px; padding: 14px 15px; }
+      .dialog-actions { grid-template-columns: 1fr; }
+      .dialog-actions .full { grid-column: auto; }
+    }
+
+    .hold-button.holding { box-shadow: inset 0 -4px 0 var(--accent-2); animation: hold-fill .9s linear; }
+    @keyframes hold-fill { from { filter: brightness(.8); } to { filter: brightness(1.4); } }
+
+    .tabletop-exit {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      right: 10px;
+      top: 10px;
+      min-height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(7,19,31,.86);
+      color: white;
+      padding: 8px 12px;
+      font-weight: 850;
+    }
+
+    body.tabletop-mode { overflow: hidden; }
+    body.tabletop-mode .app-header,
+    body.tabletop-mode .bottom-nav,
+    body.tabletop-mode .setup-card,
+    body.tabletop-mode .match-summary-card,
+    body.tabletop-mode .match-actions-details { display: none !important; }
+    body.tabletop-mode .tabletop-exit { display: block; }
+    body.tabletop-mode main { padding: 8px; height: 100dvh; overflow: hidden; }
+    body.tabletop-mode #tracker { display: flex !important; flex-direction: column; height: calc(100dvh - 16px); gap: 7px; }
+    body.tabletop-mode .scoreboard { display: contents; }
+    body.tabletop-mode .player-card {
+      flex: 1 1 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      align-content: stretch;
+      box-shadow: none;
+    }
+    body.tabletop-mode .player-card.opponent { order: 1; transform: rotate(180deg); }
+    body.tabletop-mode.no-opponent-rotate .player-card.opponent { transform: none; }
+    body.tabletop-mode .timer-strip { order: 2; flex: 0 0 auto; margin: 0; padding: 6px 8px; }
+    body.tabletop-mode .player-card:not(.opponent) { order: 3; }
+    body.tabletop-mode .quick-actions { order: 4; flex: 0 0 auto; margin: 0; }
+    body.tabletop-mode .overtime-banner { order: 2; margin: 0; }
+    body.tabletop-mode .score-controls {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.26fr) minmax(0, 1fr);
+      padding: 6px 10px;
+      gap: 10px;
+    }
+    body.tabletop-mode .score-button,
+    body.tabletop-mode .score-display { min-height: 0; height: 100%; border-radius: 24px; }
+    body.tabletop-mode .score-button { font-size: clamp(1.5rem, 4.6dvh, 2.35rem); }
+    body.tabletop-mode .score-value { font-size: clamp(3.7rem, 11dvh, 7.2rem); }
+    body.tabletop-mode .xp-controls {
+      grid-template-columns: 1fr 1.3fr 1fr 1fr 1fr;
+      grid-template-areas:
+        "head head head head head"
+        "minus value plus1 plus2 plus3";
+      padding: 4px 10px 10px;
+      gap: 8px;
+    }
+    body.tabletop-mode .xp-button,
+    body.tabletop-mode .xp-value { min-height: clamp(50px, 7.2dvh, 72px); }
+    body.tabletop-mode .timer-label,
+    body.tabletop-mode .timer-status { display: none; }
+    body.tabletop-mode .timer-strip { grid-template-columns: 38px auto 38px; justify-content: center; }
+    body.tabletop-mode .timer-copy { min-width: 82px; text-align: center; }
+    body.tabletop-mode .timer-toggle,
+    body.tabletop-mode .timer-reset { width: 36px; height: 36px; min-height: 36px; }
+    body.tabletop-mode .quick-label { display: none; }
+    body.tabletop-mode .quick-actions button { min-height: 42px; font-size: 1.05rem; }
+    body.tabletop-mode .tabletop-dice-result { display: inline; }
+    body.tabletop-mode #rollDiceBtn,
+    body.tabletop-mode #overtimeBtn { border-color: rgba(245,138,7,.34); background: rgba(245,138,7,.12); }
+    body.tabletop-mode .overtime-banner { position: relative; z-index: 12; pointer-events: auto; }
+    body.tabletop-mode .overtime-banner button { pointer-events: auto; }
+
+    @media (min-width: 720px) {
+      main { padding-left: 22px; padding-right: 22px; }
+      .scoreboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .score-button, .score-display { min-height: 142px; }
+      .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .breakdown-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 560px) {
+      .field-grid.two, .field-grid.three { grid-template-columns: 1fr; }
+      .history-tools, .deck-toolbar { grid-template-columns: 1fr; }
+      .header-tabletop { padding-left: 9px; padding-right: 9px; }
+      .quick-actions { grid-template-columns: repeat(3, 1fr); }
+      .quick-actions button:nth-child(4), .quick-actions button:nth-child(5) { grid-column: span 1; }
+      .score-controls { grid-template-columns: minmax(68px, 1fr) minmax(108px, 1.18fr) minmax(68px, 1fr); width: 100%; padding: 10px; gap: 8px; }
+      .score-button, .score-display { min-height: 112px; }
+      .xp-controls { grid-template-columns: 1fr 1.22fr 1fr 1fr 1fr; grid-template-areas: "head head head head head" "minus value plus1 plus2 plus3"; gap: 6px; padding-left: 10px; padding-right: 10px; }
+      .xp-heading { font-size: .66rem; }
+      .timer-strip { grid-template-columns: 42px auto 1fr 38px; gap: 7px; padding: 8px; }
+      .timer-toggle, .timer-reset { width: 38px; height: 38px; min-height: 38px; }
+      .timer-display { font-size: 1.48rem; }
+      .timer-status { font-size: .68rem; }
+    }
+
+    @media (max-height: 700px) and (orientation: portrait) {
+      body.tabletop-mode .xp-controls { padding-top: 0; padding-bottom: 5px; }
+      body.tabletop-mode .player-head { padding-top: 7px; }
+      body.tabletop-mode .score-controls { padding-top: 3px; padding-bottom: 3px; }
+      body.tabletop-mode .score-button, body.tabletop-mode .score-display { min-height: 0; height: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section id="profileScreen">
+      <div class="hero">
+        <img src="AhriFoxIcon512_v49.png" alt="Riftbound Tracker logo">
+        <h1>Riftbound Tracker</h1>
+        <p>Ahri edition — score, XP, saved decks, timer and match history.</p>
+      </div>
+
+      <main style="padding-top:0">
+        <div class="card">
+          <h2>Choose profile</h2>
+          <div class="field-grid">
+            <label class="field">Profile
+              <select id="profileSelect"></select>
+            </label>
+            <button id="loadProfileBtn" class="primary" type="button">Open profile</button>
+          </div>
+        </div>
+
+        <div class="card flat">
+          <h3>Create a profile</h3>
+          <div class="field-grid">
+            <label class="field">Name
+              <input id="newProfileName" type="text" maxlength="40" autocomplete="off" placeholder="Your name">
+            </label>
+            <button id="createProfileBtn" class="secondary" type="button">Create and open</button>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <section id="appScreen" class="hidden">
+      <header class="app-header">
+        <img class="brand-mark" src="AhriFoxIcon192_v49.png" alt="">
+        <div class="brand-copy">
+          <div class="brand-title">Riftbound Tracker · Ahri</div>
+          <div id="headerProfile" class="brand-subtitle"></div>
+        </div>
+        <button id="installBtn" class="icon-button hidden" type="button">Install</button>
+        <button id="headerTabletopBtn" class="icon-button header-tabletop" type="button" aria-label="Open tabletop mode">↕ Tabletop</button>
+        <button id="switchProfileBtn" class="icon-button" type="button" aria-label="Switch profile">⇄</button>
+      </header>
+
+      <main>
+        <section id="tracker" class="screen active">
+          <details class="card flat setup-card" open>
+            <summary class="setup-summary"><span>Match setup</span><span class="muted small">tap to collapse</span></summary>
+            <div class="details-body">
+              <div class="field-grid three">
+                <label class="field">Opponent
+                  <input id="opponentInput" type="text" maxlength="60" placeholder="Opponent">
+                </label>
+                <label class="field">Event
+                  <input id="eventInput" type="text" maxlength="80" placeholder="Optional">
+                </label>
+                <label class="field">Match type
+                  <select id="matchTypeInput">
+                    <option value="casual">Casual</option>
+                    <option value="tournament">Tournament</option>
+                    <option value="testing">Testing</option>
+                  </select>
+                </label>
+                <label class="field">Your deck
+                  <div id="deckCombobox" class="deck-combobox">
+                    <input id="deckInput" type="text" maxlength="80" autocomplete="off" placeholder="Choose a saved deck or type any deck name" aria-autocomplete="list" aria-controls="deckDropdownMenu" aria-expanded="false">
+                    <button id="deckDropdownBtn" class="deck-dropdown-toggle" type="button" aria-label="Show saved decks" aria-controls="deckDropdownMenu" aria-expanded="false">⌄</button>
+                    <div id="deckDropdownMenu" class="deck-dropdown-menu hidden" role="listbox" aria-label="Saved decks"></div>
+                  </div>
+                  <span class="field-hint">Select a deck saved in the Decks tab, or type a different deck name.</span>
+                </label>
+                <label class="field">Opponent deck / colors
+                  <input id="opponentDeckInput" type="text" maxlength="80" placeholder="Optional">
+                </label>
+              </div>
+              <div class="button-row" style="margin-top:12px">
+                <button id="quickMatchSetupBtn" class="primary" type="button">Start match</button>
+              </div>
+              <p class="help-callout"><strong>Start match:</strong> uses the opponent, event, match type, your deck and opponent deck entered above, then resets score, XP, dice, overtime and the timer for the new match.</p>
+            </div>
+          </details>
+
+          <div class="card flat match-summary-card">
+            <div class="match-strip">
+              <div class="match-chip"><span>Match</span><strong id="matchScore">0 – 0</strong></div>
+              <div class="match-chip"><span>Target</span><strong id="winningScoreDisplay">8</strong></div>
+              <div class="match-chip"><span>D20</span><strong id="diceResult">–</strong></div>
+            </div>
+          </div>
+
+          <div class="scoreboard" id="scoreboard">
+            <article id="playerOneCard" class="player-card">
+              <div class="player-head">
+                <div id="playerOneName" class="player-name">You</div>
+                <div id="playerOneGames" class="game-wins">Games: 0</div>
+              </div>
+              <div class="score-controls">
+                <button class="score-button minus" data-player="1" data-delta="-1" type="button" aria-label="Remove one point from your score">−1</button>
+                <div class="score-display"><span class="resource-label">Points</span><div id="p1Score" class="score-value" aria-live="polite">0</div></div>
+                <button class="score-button plus" data-player="1" data-delta="1" type="button" aria-label="Add one point to your score">+1</button>
+              </div>
+              <div class="xp-controls" aria-label="Your Riftbound XP tracker">
+                <span class="xp-heading">XP / Level</span>
+                <button class="xp-button" data-xp-player="1" data-xp-delta="-1" type="button">−1</button>
+                <div id="p1Xp" class="xp-value" data-xp-display="1" aria-live="polite" title="Tap for more options; hold to reset">0</div>
+                <button class="xp-button gain" data-xp-player="1" data-xp-delta="1" type="button">+1</button>
+                <button class="xp-button gain" data-xp-player="1" data-xp-delta="2" type="button">+2</button>
+                <button class="xp-button gain" data-xp-player="1" data-xp-delta="3" type="button">+3</button>
+              </div>
+            </article>
+
+            <article id="playerTwoCard" class="player-card opponent">
+              <div class="player-head">
+                <div id="playerTwoName" class="player-name">Opponent</div>
+                <div id="playerTwoGames" class="game-wins">Games: 0</div>
+              </div>
+              <div class="score-controls">
+                <button class="score-button minus" data-player="2" data-delta="-1" type="button" aria-label="Remove one point from opponent score">−1</button>
+                <div class="score-display"><span class="resource-label">Points</span><div id="p2Score" class="score-value" aria-live="polite">0</div></div>
+                <button class="score-button plus" data-player="2" data-delta="1" type="button" aria-label="Add one point to opponent score">+1</button>
+              </div>
+              <div class="xp-controls" aria-label="Opponent Riftbound XP tracker">
+                <span class="xp-heading">XP / Level</span>
+                <button class="xp-button" data-xp-player="2" data-xp-delta="-1" type="button">−1</button>
+                <div id="p2Xp" class="xp-value" data-xp-display="2" aria-live="polite" title="Tap for more options; hold to reset">0</div>
+                <button class="xp-button gain" data-xp-player="2" data-xp-delta="1" type="button">+1</button>
+                <button class="xp-button gain" data-xp-player="2" data-xp-delta="2" type="button">+2</button>
+                <button class="xp-button gain" data-xp-player="2" data-xp-delta="3" type="button">+3</button>
+              </div>
+            </article>
+          </div>
+
+          <div class="timer-strip" aria-label="Match timer">
+            <button id="timerToggleBtn" class="timer-toggle" type="button" aria-label="Start match timer">▶</button>
+            <div class="timer-copy">
+              <span class="timer-label">Match timer</span>
+              <div id="timerDisplay" class="timer-display">50:00</div>
+            </div>
+            <div id="timerStatus" class="timer-status">Ready</div>
+            <button id="timerResetBtn" class="timer-reset" type="button" aria-label="Reset match timer">↺</button>
+          </div>
+
+          <div class="quick-actions">
+            <button id="undoBtn" class="secondary" type="button">↶ <span class="quick-label">Undo</span></button>
+            <button id="rollDiceBtn" class="secondary" type="button">🎲 <span class="quick-label">D20</span><strong id="diceQuickResult" class="tabletop-dice-result">–</strong></button>
+            <button id="overtimeBtn" class="secondary" type="button">⏱ <span id="overtimeQuickText" class="quick-label">Overtime</span></button>
+            <button id="tabletopBtn" class="secondary" type="button">↕ <span class="quick-label">Tabletop</span></button>
+            <button id="quickMatchBtn" class="secondary" type="button">⚡ <span class="quick-label">Match</span></button>
+          </div>
+
+          <div id="overtimeBanner" class="overtime-banner hidden">
+            <div><strong>Overtime</strong><br><span id="overtimeText" class="small"></span></div>
+            <button id="nextTurnBtn" class="primary nowrap" type="button">Next overtime turn</button>
+          </div>
+
+          <details class="match-actions-details">
+            <summary>Match actions</summary>
+            <div class="details-body">
+              <div class="button-row">
+                <button id="awardMeBtn" class="success" type="button">I won match</button>
+                <button id="awardOpponentBtn" class="danger" type="button">Opponent won</button>
+                <button id="recordDrawBtn" class="secondary" type="button">Record draw</button>
+              </div>
+              <div class="button-row" style="margin-top:9px">
+                <button id="resetGameBtn" class="secondary" type="button">Reset current game</button>
+                <button id="resetMatchBtn" class="danger hold-button" type="button">Hold to reset match</button>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section id="decks" class="screen">
+          <h2 class="section-title">Deck library</h2>
+          <div class="deck-toolbar">
+            <input id="deckSearch" type="search" placeholder="Search saved decks">
+            <button id="newDeckBtn" class="primary" type="button">Import deck</button>
+          </div>
+          <div class="card flat">
+            <p class="muted small" style="margin:0">Paste the same numbered deck list format you use for TCG Arena or Rift Atlas. Main deck and <strong>Sideboard:</strong> sections are recognised automatically.</p>
+          </div>
+          <div id="deckList" class="deck-list"></div>
+        </section>
+
+        <section id="history" class="screen">
+          <h2 class="section-title">Match history</h2>
+          <div class="history-tools">
+            <input id="historySearch" type="search" placeholder="Search opponent, leader, deck, event or notes">
+            <select id="historyFilter" aria-label="Filter history">
+              <option value="all">All results</option>
+              <option value="win">Wins</option>
+              <option value="loss">Losses</option>
+              <option value="draw">Draws</option>
+            </select>
+          </div>
+          <div id="historyList" class="history-list"></div>
+          <div class="button-row" style="margin-top:14px">
+            <button id="exportCsvBtn" class="secondary" type="button">Export history CSV</button>
+          </div>
+        </section>
+
+        <section id="stats" class="screen">
+          <h2 class="section-title">Stats</h2>
+          <div class="stat-grid">
+            <div class="stat-card"><span>Matches</span><strong id="totalMatches">0</strong></div>
+            <div class="stat-card"><span>Wins</span><strong id="winStat">0</strong></div>
+            <div class="stat-card"><span>Losses</span><strong id="lossStat">0</strong></div>
+            <div class="stat-card"><span>Draws</span><strong id="drawStat">0</strong></div>
+            <div class="stat-card"><span>Win rate</span><strong id="winRate">0%</strong></div>
+            <div class="stat-card"><span>Games won</span><strong id="gamesWon">0</strong></div>
+            <div class="stat-card"><span>Games lost</span><strong id="gamesLost">0</strong></div>
+            <div class="stat-card"><span>Current streak</span><strong id="streakStat">–</strong></div>
+          </div>
+          <div class="breakdown-grid">
+            <div class="breakdown-card"><h3>By your deck</h3><div id="deckBreakdown" class="breakdown-list"></div></div>
+            <div class="breakdown-card"><h3>Against deck</h3><div id="opponentDeckBreakdown" class="breakdown-list"></div></div>
+            <div class="breakdown-card"><h3>By event</h3><div id="eventBreakdown" class="breakdown-list"></div></div>
+            <div class="breakdown-card"><h3>Match type</h3><div id="matchTypeBreakdown" class="breakdown-list"></div></div>
+          </div>
+        </section>
+
+        <section id="settings" class="screen">
+          <h2 class="section-title">Settings</h2>
+
+          <div class="card">
+            <h3>Match format</h3>
+            <div class="field-grid two">
+              <label class="field">Winning score
+                <input id="winInput" type="number" min="1" max="99" inputmode="numeric">
+              </label>
+              <label class="field">Match format
+                <select id="bestOfInput">
+                  <option value="1">Best of 1</option>
+                  <option value="3">Best of 3</option>
+                  <option value="5">Best of 5</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Timer</h3>
+            <label class="field">Minutes
+              <input id="timerMinutesInput" type="number" min="1" max="240" inputmode="numeric">
+            </label>
+            <div class="preset-row">
+              <button class="secondary timer-preset" data-minutes="45" type="button">45 min</button>
+              <button class="secondary timer-preset" data-minutes="50" type="button">50 min</button>
+              <button class="secondary timer-preset" data-minutes="55" type="button">55 min</button>
+            </div>
+            <label class="switch-row"><span><strong>Automatic overtime</strong><br><span class="muted small">Start overtime when the timer expires</span></span><input id="autoOvertimeInput" type="checkbox"></label>
+          </div>
+
+          <div class="card">
+            <h3>Table experience</h3>
+            <label class="switch-row"><span><strong>Haptic feedback</strong><br><span class="muted small">Vibrate for score, game and timer events</span></span><input id="hapticsInput" type="checkbox"></label>
+            <label class="switch-row"><span><strong>Sound feedback</strong><br><span class="muted small">Small tones for actions and timer warnings</span></span><input id="soundInput" type="checkbox"></label>
+            <label class="switch-row"><span><strong>Keep screen awake</strong><br><span class="muted small">While the timer or tabletop mode is active</span></span><input id="wakeLockInput" type="checkbox"></label>
+            <label class="switch-row"><span><strong>Rotate opponent panel</strong><br><span class="muted small">Face controls toward the other player in tabletop mode</span></span><input id="rotateOpponentInput" type="checkbox"></label>
+            <div id="wakeStatus" class="muted small"></div>
+          </div>
+
+          <div class="card">
+            <h3>Data & app</h3>
+            <div class="button-row">
+              <button id="openEventsBtn" class="secondary" type="button">Open Riftbound events</button>
+              <button id="exportBackupBtn" class="secondary" type="button">Export backup</button>
+              <button id="importBackupBtn" class="secondary" type="button">Import backup</button>
+              <input id="importBackupFile" class="hidden" type="file" accept="application/json,.json">
+            </div>
+            <p class="muted small" style="margin-bottom:0">Tip: swipe left anywhere on the tracker background to undo. Hold an XP number to reset it.</p>
+          </div>
+
+          <div class="card">
+            <h3>Danger zone</h3>
+            <div class="button-row">
+              <button id="resetStatsBtn" class="danger" type="button">Reset profile data</button>
+              <button id="deleteProfileBtn" class="danger" type="button">Delete profile</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <button class="nav-button active" data-screen="tracker" type="button"><span>◉</span>Tracker</button>
+        <button class="nav-button" data-screen="decks" type="button"><span>▤</span>Decks</button>
+        <button class="nav-button" data-screen="history" type="button"><span>≡</span>History</button>
+        <button class="nav-button" data-screen="stats" type="button"><span>↗</span>Stats</button>
+        <button class="nav-button" data-screen="settings" type="button"><span>⚙</span>Settings</button>
+      </nav>
+    </section>
+  </div>
+
+  <button id="tabletopExitBtn" class="tabletop-exit" type="button">Exit tabletop</button>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="xpDialog">
+    <div class="dialog-body">
+      <div class="dialog-head"><h2 id="xpDialogTitle">Adjust XP</h2><button class="secondary dialog-close" data-close-dialog="xpDialog" type="button">✕</button></div>
+      <div class="xp-grid">
+        <button class="secondary xp-dialog-delta" data-delta="-5" type="button">−5</button>
+        <button class="secondary xp-dialog-delta" data-delta="-3" type="button">−3</button>
+        <button class="secondary xp-dialog-delta" data-delta="-1" type="button">−1</button>
+        <button class="primary xp-dialog-delta" data-delta="1" type="button">+1</button>
+        <button class="primary xp-dialog-delta" data-delta="2" type="button">+2</button>
+        <button class="primary xp-dialog-delta" data-delta="3" type="button">+3</button>
+        <button class="primary xp-dialog-delta" data-delta="5" type="button">+5</button>
+        <button id="xpResetBtn" class="danger" type="button">Reset</button>
+      </div>
+      <div class="field-grid two" style="margin-top:12px">
+        <label class="field">Set exact XP
+          <input id="xpExactInput" type="number" min="0" max="999" inputmode="numeric">
+        </label>
+        <button id="xpSetExactBtn" class="secondary" type="button" style="align-self:end">Set value</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="deckDialog">
+    <div class="dialog-body">
+      <div class="dialog-head"><h2 id="deckDialogTitle">Import deck</h2><button class="secondary dialog-close" data-close-dialog="deckDialog" type="button">✕</button></div>
+      <input id="deckEditId" type="hidden">
+      <div class="field-grid">
+        <label class="field">Deck name
+          <input id="deckNameInput" type="text" maxlength="80" placeholder="e.g. Akali Fury / Calm">
+        </label>
+        <label class="field">Paste deck list
+          <textarea id="deckImportText" style="min-height:300px" spellcheck="false" placeholder="1 Akali, Rogue Assassin&#10;3 Stellacorn Herder&#10;...&#10;Sideboard:&#10;3 Thermo Beam"></textarea>
+        </label>
+      </div>
+      <div id="deckImportStatus" class="deck-import-status">Paste a numbered deck list to preview it.</div>
+      <pre id="deckImportPreview" class="deck-preview hidden"></pre>
+      <div class="dialog-actions">
+        <button id="saveDeckBtn" class="primary" type="button">Save deck</button>
+        <button id="copyDeckBtn" class="secondary" type="button">Copy deck list</button>
+        <button id="exportDeckBtn" class="secondary" type="button">Export .txt</button>
+        <button id="deleteDeckBtn" class="danger hidden" type="button">Delete deck</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="historyDialog">
+    <div class="dialog-body">
+      <div class="dialog-head"><h2>Edit match</h2><button class="secondary dialog-close" data-close-dialog="historyDialog" type="button">✕</button></div>
+      <input id="historyEditId" type="hidden">
+      <div class="field-grid two">
+        <label class="field">Date and time<input id="historyEditDate" type="datetime-local"></label>
+        <label class="field">Result<select id="historyEditResult"><option value="win">Win</option><option value="loss">Loss</option><option value="draw">Draw</option></select></label>
+        <label class="field">Opponent<input id="historyEditOpponent" type="text" maxlength="60"></label>
+        <label class="field">Event<input id="historyEditEvent" type="text" maxlength="80"></label>
+        <label class="field">Match type<select id="historyEditMatchType"><option value="casual">Casual</option><option value="tournament">Tournament</option><option value="testing">Testing</option></select></label>
+        <label class="field">Your deck<input id="historyEditDeck" type="text" maxlength="80"></label>
+        <label class="field">Opponent deck / colors<input id="historyEditOpponentDeck" type="text" maxlength="80"></label>
+        <label class="field">Your games<input id="historyEditScoreP1" type="number" min="0" max="99"></label>
+        <label class="field">Opponent games<input id="historyEditScoreP2" type="number" min="0" max="99"></label>
+      </div>
+      <div class="dialog-actions">
+        <button id="saveHistoryBtn" class="primary" type="button">Save changes</button>
+        <button id="deleteHistoryBtn" class="danger" type="button">Delete match</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    "use strict";
+
+    const PROFILE_LIST_KEY = "profiles";
+    const LAST_PROFILE_KEY = "riftbound_last_profile";
+    const DATA_PREFIX = "riftbound_v2_profile_";
+    const MATCH_PREFIX = "riftbound_v2_match_";
+
+    let username = null;
+    let profileData = null;
+    let match = null;
+    let undoStack = [];
+    let deferredInstallPrompt = null;
+    let toastTimer = null;
+    let timerInterval = null;
+    let activeXpPlayer = 1;
+    let wakeLock = null;
+    let audioContext = null;
+    let tabletopTransitioning = false;
+
+    const $ = id => document.getElementById(id);
+    const deepClone = value => JSON.parse(JSON.stringify(value));
+    const clampInt = (value, fallback, min, max) => {
+      const number = Number.parseInt(value, 10);
+      if (!Number.isFinite(number)) return fallback;
+      return Math.min(max, Math.max(min, number));
+    };
+    const readBool = (value, fallback) => typeof value === "boolean" ? value : fallback;
+    const escapeHtml = value => String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+
+    function uid() {
+      return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    function aggregateCards(cards) {
+      const map = new Map();
+      (Array.isArray(cards) ? cards : []).forEach(card => {
+        const name = String(card?.name || "").trim();
+        const qty = clampInt(card?.qty, 0, 0, 999);
+        if (!name || !qty) return;
+        const key = name.toLocaleLowerCase();
+        if (map.has(key)) map.get(key).qty += qty;
+        else map.set(key, { qty, name });
+      });
+      return [...map.values()];
+    }
+
+    function normalizeDeck(value) {
+      const data = value && typeof value === "object" ? value : {};
+      const name = String(data.name || "Untitled deck").trim().slice(0,80) || "Untitled deck";
+      return {
+        id: typeof data.id === "string" && data.id ? data.id : uid(),
+        name,
+        main: aggregateCards(data.main || data.cards || []),
+        sideboard: aggregateCards(data.sideboard || []),
+        updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : new Date().toISOString()
+      };
+    }
+
+    function parseDeckText(text) {
+      const result = { main: [], sideboard: [], ignored: [] };
+      let section = "main";
+      String(text || "").replace(/\r/g, "").split("\n").forEach(rawLine => {
+        const line = rawLine.trim();
+        if (!line) return;
+        if (/^(sideboard|side board|sb)\s*:?$/i.test(line)) { section = "sideboard"; return; }
+        if (/^(main|mainboard|main deck|deck)\s*:?$/i.test(line)) { section = "main"; return; }
+        const matchLine = line.match(/^(\d+)\s*(?:x\s*)?(.+?)\s*$/i);
+        if (!matchLine) { result.ignored.push(line); return; }
+        const qty = clampInt(matchLine[1], 0, 0, 999);
+        const name = matchLine[2].trim();
+        if (!qty || !name) { result.ignored.push(line); return; }
+        result[section].push({ qty, name });
+      });
+      result.main = aggregateCards(result.main);
+      result.sideboard = aggregateCards(result.sideboard);
+      return result;
+    }
+
+    function formatDeckText(deck) {
+      const normalized = normalizeDeck(deck);
+      const main = normalized.main.map(card => `${card.qty} ${card.name}`);
+      const side = normalized.sideboard.length ? ["", "Sideboard:", ...normalized.sideboard.map(card => `${card.qty} ${card.name}`)] : [];
+      return [...main, ...side].join("\n");
+    }
+
+    function cardTotal(cards) { return (cards || []).reduce((sum, card) => sum + clampInt(card.qty,0,0,999), 0); }
+
+    function defaultProfileData() {
+      return {
+        version: 5,
+        stats: { totalMatches: 0, wins: 0, losses: 0, draws: 0, gamesWon: 0, gamesLost: 0 },
+        history: [],
+        decks: [],
+        settings: {
+          winningScore: 8,
+          bestOf: 3,
+          timerMinutes: 50,
+          autoOvertime: true,
+          wakeLock: true,
+          haptics: true,
+          sound: false,
+          rotateOpponent: true
+        }
+      };
+    }
+
+    function defaultMatch(timerMinutes = 50) {
+      const seconds = clampInt(timerMinutes, 50, 1, 240) * 60;
+      return {
+        p1: 0, p2: 0, xp1: 0, xp2: 0,
+        matchP1: 0, matchP2: 0,
+        overtime: false, overtimeTurns: 3,
+        opponent: "Opponent", deck: "", event: "", dice: null,
+        yourLeader: "", opponentLeader: "", opponentDeck: "", matchType: "casual", note: "",
+        matchFirstPlayer: null,
+        timerTotal: seconds, timerRemaining: seconds, timerRunning: false, timerEndAt: null,
+        timerLastWarning: 999999, timerExpired: false,
+        tabletop: false,
+        startedAt: new Date().toISOString()
+      };
+    }
+
+    function normalizeProfileData(value) {
+      const defaults = defaultProfileData();
+      const data = value && typeof value === "object" ? value : {};
+      const rawStats = data.stats && typeof data.stats === "object" ? data.stats : {};
+      const rawSettings = data.settings && typeof data.settings === "object" ? data.settings : {};
+      return {
+        version: 5,
+        stats: {
+          totalMatches: clampInt(rawStats.totalMatches, 0, 0, 100000000),
+          wins: clampInt(rawStats.wins, 0, 0, 100000000),
+          losses: clampInt(rawStats.losses, 0, 0, 100000000),
+          draws: clampInt(rawStats.draws, 0, 0, 100000000),
+          gamesWon: clampInt(rawStats.gamesWon, 0, 0, 100000000),
+          gamesLost: clampInt(rawStats.gamesLost, 0, 0, 100000000)
+        },
+        history: Array.isArray(data.history) ? data.history : [],
+        decks: Array.isArray(data.decks) ? data.decks.map(normalizeDeck) : [],
+        settings: {
+          winningScore: clampInt(rawSettings.winningScore, defaults.settings.winningScore, 1, 99),
+          bestOf: [1,3,5].includes(Number(rawSettings.bestOf)) ? Number(rawSettings.bestOf) : defaults.settings.bestOf,
+          timerMinutes: clampInt(rawSettings.timerMinutes, defaults.settings.timerMinutes, 1, 240),
+          autoOvertime: readBool(rawSettings.autoOvertime, defaults.settings.autoOvertime),
+          wakeLock: readBool(rawSettings.wakeLock, defaults.settings.wakeLock),
+          haptics: readBool(rawSettings.haptics, defaults.settings.haptics),
+          sound: readBool(rawSettings.sound, defaults.settings.sound),
+          rotateOpponent: readBool(rawSettings.rotateOpponent, defaults.settings.rotateOpponent)
+        }
+      };
+    }
+
+    function normalizeMatch(value, settings = defaultProfileData().settings) {
+      const defaults = defaultMatch(settings.timerMinutes);
+      const data = value && typeof value === "object" ? value : {};
+      const timerTotal = clampInt(data.timerTotal, defaults.timerTotal, 60, 14400);
+      return {
+        p1: clampInt(data.p1, 0, 0, 999), p2: clampInt(data.p2, 0, 0, 999),
+        xp1: clampInt(data.xp1, 0, 0, 999), xp2: clampInt(data.xp2, 0, 0, 999),
+        matchP1: clampInt(data.matchP1, 0, 0, 99), matchP2: clampInt(data.matchP2, 0, 0, 99),
+        overtime: Boolean(data.overtime), overtimeTurns: clampInt(data.overtimeTurns, 3, 0, 3),
+        opponent: typeof data.opponent === "string" && data.opponent.trim() ? data.opponent.slice(0,60) : defaults.opponent,
+        deck: typeof data.deck === "string" ? data.deck.slice(0,80) : "",
+        event: typeof data.event === "string" ? data.event.slice(0,80) : "",
+        dice: Number.isInteger(data.dice) && data.dice >= 1 && data.dice <= 20 ? data.dice : null,
+        yourLeader: typeof data.yourLeader === "string" ? data.yourLeader.slice(0,60) : "",
+        opponentLeader: typeof data.opponentLeader === "string" ? data.opponentLeader.slice(0,60) : "",
+        opponentDeck: typeof data.opponentDeck === "string" ? data.opponentDeck.slice(0,80) : "",
+        matchType: ["casual","tournament","testing"].includes(data.matchType) ? data.matchType : "casual",
+        note: typeof data.note === "string" ? data.note.slice(0,1000) : "",
+        matchFirstPlayer: [1,2].includes(Number(data.matchFirstPlayer)) ? Number(data.matchFirstPlayer) : null,
+        timerTotal,
+        timerRemaining: clampInt(data.timerRemaining, timerTotal, 0, timerTotal),
+        timerRunning: Boolean(data.timerRunning),
+        timerEndAt: Number.isFinite(Number(data.timerEndAt)) ? Number(data.timerEndAt) : null,
+        timerLastWarning: clampInt(data.timerLastWarning, 999999, 0, 999999),
+        timerExpired: Boolean(data.timerExpired),
+        tabletop: Boolean(data.tabletop),
+        startedAt: typeof data.startedAt === "string" ? data.startedAt : new Date().toISOString()
+      };
+    }
+
+    function loadProfiles() {
+      try {
+        const profiles = JSON.parse(localStorage.getItem(PROFILE_LIST_KEY));
+        return Array.isArray(profiles) ? profiles.filter(name => typeof name === "string" && name.trim()) : [];
+      } catch { return []; }
+    }
+
+    function saveProfiles(profiles) {
+      localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify([...new Set(profiles)]));
+    }
+
+    function migrateOldProfile(name) {
+      const migrated = defaultProfileData();
+      try {
+        const oldStats = JSON.parse(localStorage.getItem(`stats_${name}`) || "{}");
+        migrated.stats.totalMatches = clampInt(oldStats.totalMatches, 0, 0, 100000000);
+        migrated.stats.wins = clampInt(oldStats.wins, 0, 0, 100000000);
+        migrated.stats.losses = clampInt(oldStats.losses, 0, 0, 100000000);
+        migrated.stats.draws = clampInt(oldStats.draws, 0, 0, 100000000);
+        migrated.history = Array.isArray(oldStats.history)
+          ? oldStats.history.map(text => ({ id: uid(), type: "legacy", text: String(text), date: null }))
+          : [];
+      } catch {}
+      migrated.settings.winningScore = clampInt(localStorage.getItem(`win_${name}`), 8, 1, 99);
+      return migrated;
+    }
+
+    function getProfileData(name) {
+      const raw = localStorage.getItem(DATA_PREFIX + name);
+      if (raw) {
+        try { return normalizeProfileData(JSON.parse(raw)); }
+        catch { return defaultProfileData(); }
+      }
+      const migrated = migrateOldProfile(name);
+      localStorage.setItem(DATA_PREFIX + name, JSON.stringify(migrated));
+      return migrated;
+    }
+
+    function getMatchData(name, settings) {
+      const raw = localStorage.getItem(MATCH_PREFIX + name);
+      if (raw) {
+        try { return normalizeMatch(JSON.parse(raw), settings); }
+        catch { return defaultMatch(settings.timerMinutes); }
+      }
+      const fresh = defaultMatch(settings.timerMinutes);
+      const oldOpponent = localStorage.getItem(`opponent_${name}`);
+      if (oldOpponent && oldOpponent.trim()) fresh.opponent = oldOpponent.trim().slice(0,60);
+      return fresh;
+    }
+
+    function saveAll() {
+      if (!username || !profileData || !match) return;
+      localStorage.setItem(DATA_PREFIX + username, JSON.stringify(profileData));
+      localStorage.setItem(MATCH_PREFIX + username, JSON.stringify(match));
+    }
+
+    function refreshProfileDropdown(selectedName = "") {
+      const select = $("profileSelect");
+      const profiles = loadProfiles();
+      select.innerHTML = "";
+      if (!profiles.length) {
+        const option = document.createElement("option");
+        option.value = ""; option.textContent = "No profiles yet";
+        select.appendChild(option); $("loadProfileBtn").disabled = true; return;
+      }
+      profiles.forEach(name => {
+        const option = document.createElement("option");
+        option.value = name; option.textContent = name; select.appendChild(option);
+      });
+      const preferred = selectedName || localStorage.getItem(LAST_PROFILE_KEY);
+      if (preferred && profiles.includes(preferred)) select.value = preferred;
+      $("loadProfileBtn").disabled = false;
+    }
+
+    function createProfile() {
+      const input = $("newProfileName");
+      const name = input.value.trim();
+      if (!name) return showToast("Enter a profile name.");
+      const profiles = loadProfiles();
+      if (!profiles.includes(name)) { profiles.push(name); saveProfiles(profiles); }
+      input.value = ""; refreshProfileDropdown(name); openProfile(name);
+    }
+
+    function openSelectedProfile() { const name = $("profileSelect").value; if (name) openProfile(name); }
+
+    function openProfile(name) {
+      username = name;
+      profileData = getProfileData(name);
+      match = getMatchData(name, profileData.settings);
+      if (match.timerRunning && match.timerEndAt) updateTimerFromClock(false);
+      undoStack = [];
+      localStorage.setItem(LAST_PROFILE_KEY, name);
+      $("profileScreen").classList.add("hidden");
+      $("appScreen").classList.remove("hidden");
+      $("headerProfile").textContent = name;
+      $("playerOneName").textContent = name;
+      loadSettingsIntoInputs();
+      updateUI();
+      showScreen("tracker");
+      startTimerLoop();
+      syncWakeLock();
+    }
+
+    async function switchProfile() {
+      saveInputsToMatch(); saveAll();
+      if (match?.tabletop) await setTabletop(false);
+      username = null; profileData = null; match = null; undoStack = [];
+      $("appScreen").classList.add("hidden");
+      $("profileScreen").classList.remove("hidden");
+      refreshProfileDropdown();
+      stopTimerLoop();
+      syncWakeLock();
+    }
+
+    function loadSettingsIntoInputs() {
+      $("opponentInput").value = match.opponent;
+      $("deckInput").value = match.deck;
+      $("eventInput").value = match.event;
+      $("opponentDeckInput").value = match.opponentDeck;
+      $("matchTypeInput").value = match.matchType;
+      $("winInput").value = profileData.settings.winningScore;
+      $("bestOfInput").value = profileData.settings.bestOf;
+      $("timerMinutesInput").value = profileData.settings.timerMinutes;
+      $("autoOvertimeInput").checked = profileData.settings.autoOvertime;
+      $("wakeLockInput").checked = profileData.settings.wakeLock;
+      $("hapticsInput").checked = profileData.settings.haptics;
+      $("soundInput").checked = profileData.settings.sound;
+      $("rotateOpponentInput").checked = profileData.settings.rotateOpponent;
+    }
+
+    function saveInputsToMatch() {
+      if (!match) return;
+      match.opponent = $("opponentInput").value.trim() || "Opponent";
+      match.deck = $("deckInput").value.trim();
+      match.event = $("eventInput").value.trim();
+      match.opponentDeck = $("opponentDeckInput").value.trim();
+      match.matchType = $("matchTypeInput").value;
+    }
+
+    function saveSettingsFromInputs() {
+      if (!profileData) return;
+      const oldTimerMinutes = profileData.settings.timerMinutes;
+      profileData.settings.winningScore = clampInt($("winInput").value, 8, 1, 99);
+      profileData.settings.bestOf = [1,3,5].includes(Number($("bestOfInput").value)) ? Number($("bestOfInput").value) : 3;
+      profileData.settings.timerMinutes = clampInt($("timerMinutesInput").value, 50, 1, 240);
+      profileData.settings.autoOvertime = $("autoOvertimeInput").checked;
+      profileData.settings.wakeLock = $("wakeLockInput").checked;
+      profileData.settings.haptics = $("hapticsInput").checked;
+      profileData.settings.sound = $("soundInput").checked;
+      profileData.settings.rotateOpponent = $("rotateOpponentInput").checked;
+      if (profileData.settings.timerMinutes !== oldTimerMinutes && !match.timerRunning) {
+        match.timerTotal = profileData.settings.timerMinutes * 60;
+        match.timerRemaining = match.timerTotal;
+        match.timerExpired = false;
+        match.timerLastWarning = 999999;
+      }
+      saveAll(); updateUI(); syncWakeLock();
+    }
+
+    function winsNeeded() { return Math.ceil(profileData.settings.bestOf / 2); }
+
+    function pushUndo() {
+      undoStack.push({ profileData: deepClone(profileData), match: deepClone(match) });
+      if (undoStack.length > 30) undoStack.shift();
+      updateUndoButton();
+    }
+
+    function undoLast() {
+      const previous = undoStack.pop();
+      if (!previous) return;
+      profileData = normalizeProfileData(previous.profileData);
+      match = normalizeMatch(previous.match, profileData.settings);
+      saveAll(); loadSettingsIntoInputs(); updateUI(); syncWakeLock();
+      showToast("Last action undone.");
+    }
+
+    function updateUndoButton() { $("undoBtn").disabled = undoStack.length === 0; }
+
+    function animateDelta(elementId, delta) {
+      const target = $(elementId);
+      if (!target) return;
+      const pop = document.createElement("span");
+      pop.className = `delta-pop${delta < 0 ? " negative" : ""}`;
+      pop.textContent = `${delta > 0 ? "+" : ""}${delta}`;
+      target.appendChild(pop);
+      setTimeout(() => pop.remove(), 700);
+    }
+
+    function ensureAudio() {
+      if (!audioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioContext = new AudioCtx();
+      }
+      if (audioContext?.state === "suspended") audioContext.resume().catch(() => {});
+    }
+
+    function tone(frequency = 520, duration = .05, volume = .04) {
+      if (!profileData?.settings.sound) return;
+      try {
+        ensureAudio();
+        if (!audioContext) return;
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.frequency.value = frequency;
+        gain.gain.value = volume;
+        oscillator.connect(gain); gain.connect(audioContext.destination);
+        oscillator.start(); oscillator.stop(audioContext.currentTime + duration);
+      } catch {}
+    }
+
+    function vibrate(pattern) {
+      if (profileData?.settings.haptics && navigator.vibrate) navigator.vibrate(pattern);
+    }
+
+    function feedback(kind) {
+      if (kind === "tap") { vibrate(14); tone(430,.025,.025); }
+      if (kind === "game") { vibrate([60,40,100]); tone(720,.12,.05); }
+      if (kind === "timer") { vibrate([120,80,120]); tone(880,.18,.06); }
+      if (kind === "warning") { vibrate([45,35,45]); tone(660,.10,.04); }
+    }
+
+    function changeScore(player, delta) {
+      if (!match) return;
+      const key = player === 1 ? "p1" : "p2";
+      if (delta < 0 && match[key] <= 0) return;
+      pushUndo(); match[key] = Math.max(0, match[key] + delta);
+      animateDelta(player === 1 ? "p1Score" : "p2Score", delta); feedback("tap");
+      if (delta > 0 && !match.overtime && match[key] >= profileData.settings.winningScore) awardGame(player, true);
+      saveAll(); updateUI();
+    }
+
+    function changeXp(player, delta) {
+      if (!match) return;
+      const key = player === 1 ? "xp1" : "xp2";
+      if (delta < 0 && match[key] <= 0) return;
+      pushUndo();
+      const old = match[key];
+      match[key] = Math.max(0, Math.min(999, match[key] + delta));
+      const applied = match[key] - old;
+      if (!applied) { undoStack.pop(); updateUndoButton(); return; }
+      animateDelta(player === 1 ? "p1Xp" : "p2Xp", applied); feedback("tap");
+      saveAll(); updateUI();
+    }
+
+    function setXp(player, value) {
+      const key = player === 1 ? "xp1" : "xp2";
+      const next = clampInt(value, match[key], 0, 999);
+      if (next === match[key]) return;
+      pushUndo(); const delta = next - match[key]; match[key] = next;
+      animateDelta(player === 1 ? "p1Xp" : "p2Xp", delta); feedback("tap");
+      saveAll(); updateUI();
+    }
+
+    function openXpDialog(player) {
+      activeXpPlayer = player;
+      const value = player === 1 ? match.xp1 : match.xp2;
+      $("xpDialogTitle").textContent = `${player === 1 ? username : match.opponent} XP / Level: ${value}`;
+      $("xpExactInput").value = value;
+      $("xpDialog").showModal();
+    }
+
+    function awardGame(player, automatic = false, endMatchAfterGame = false) {
+      if (!automatic) pushUndo();
+      if (player === 1) match.matchP1 += 1; else match.matchP2 += 1;
+      const gameScore = `${match.p1}–${match.p2}`;
+      match.p1 = 0; match.p2 = 0; match.xp1 = 0; match.xp2 = 0;
+      match.overtime = false; match.overtimeTurns = 3;
+      feedback("game");
+      showToast(`${player === 1 ? username : match.opponent} won the game ${gameScore}.`);
+      if (endMatchAfterGame) {
+        const result = match.matchP1 > match.matchP2 ? "win" : match.matchP2 > match.matchP1 ? "loss" : "draw";
+        finalizeMatch(result, true);
+      } else if (match.matchP1 >= winsNeeded() || match.matchP2 >= winsNeeded()) {
+        finalizeMatch(match.matchP1 > match.matchP2 ? "win" : "loss", true);
+      }
+    }
+
+    function applyMatchToStats(item, factor) {
+      if (!item || item.type !== "match") return;
+      const stats = profileData.stats;
+      stats.totalMatches = Math.max(0, stats.totalMatches + factor);
+      if (item.result === "win") stats.wins = Math.max(0, stats.wins + factor);
+      if (item.result === "loss") stats.losses = Math.max(0, stats.losses + factor);
+      if (item.result === "draw") stats.draws = Math.max(0, stats.draws + factor);
+      stats.gamesWon = Math.max(0, stats.gamesWon + factor * clampInt(item.scoreP1,0,0,99));
+      stats.gamesLost = Math.max(0, stats.gamesLost + factor * clampInt(item.scoreP2,0,0,99));
+    }
+
+    function finalizeMatch(result, pushed = false) {
+      if (!pushed) pushUndo();
+      saveInputsToMatch();
+      const item = {
+        id: uid(), type: "match", date: new Date().toISOString(), startedAt: match.startedAt,
+        opponent: match.opponent || "Opponent", deck: match.deck || "", event: match.event || "",
+        yourLeader: match.yourLeader || "", opponentLeader: match.opponentLeader || "", opponentDeck: match.opponentDeck || "",
+        matchType: match.matchType || "casual", note: match.note || "",
+        firstPlayer: match.matchFirstPlayer === 1 ? "me" : match.matchFirstPlayer === 2 ? "opponent" : "unknown",
+        result, scoreP1: match.matchP1, scoreP2: match.matchP2
+      };
+      profileData.history.unshift(item); applyMatchToStats(item, 1);
+
+      const keep = { deck: match.deck, event: match.event, yourLeader: match.yourLeader, matchType: match.matchType };
+      const tabletop = match.tabletop;
+      match = defaultMatch(profileData.settings.timerMinutes);
+      Object.assign(match, keep, { tabletop });
+      saveAll(); loadSettingsIntoInputs(); updateUI();
+      feedback("game"); showToast(`Match recorded: ${result.toUpperCase()}.`);
+    }
+
+    function startOvertime(push = true) {
+      if (match.overtime) { updateUI(); return; }
+      if (push) pushUndo();
+      match.overtime = true; match.overtimeTurns = 3;
+      saveAll(); updateUI();
+    }
+
+    function handleOvertimeAction() {
+      if (match.overtime) nextOvertimeTurn();
+      else startOvertime(true);
+    }
+
+    function nextOvertimeTurn() {
+      if (!match.overtime) return;
+      pushUndo(); match.overtimeTurns -= 1;
+      if (match.overtimeTurns <= 0) {
+        const difference = Math.abs(match.p1 - match.p2);
+        if (difference >= 2) awardGame(match.p1 > match.p2 ? 1 : 2, true, true);
+        else {
+          const result = match.matchP1 > match.matchP2 ? "win" : match.matchP2 > match.matchP1 ? "loss" : "draw";
+          finalizeMatch(result, true);
+        }
+      }
+      saveAll(); updateUI();
+    }
+
+    function rollDice() {
+      pushUndo(); match.dice = Math.floor(Math.random() * 20) + 1;
+      feedback("tap"); saveAll(); updateUI();
+    }
+
+    function forceMatchResult(result) {
+      pushUndo();
+      const needed = winsNeeded();
+      if (result === "win" && match.matchP1 <= match.matchP2) match.matchP1 = needed;
+      if (result === "loss" && match.matchP2 <= match.matchP1) match.matchP2 = needed;
+      finalizeMatch(result, true);
+    }
+
+    function resetCurrentGame() {
+      if (!confirm("Reset the current game score and XP? The match game score will stay.")) return;
+      pushUndo();
+      match.p1 = 0; match.p2 = 0; match.xp1 = 0; match.xp2 = 0;
+      match.overtime = false; match.overtimeTurns = 3;
+      saveAll(); updateUI();
+    }
+
+    function resetEntireMatch() {
+      pushUndo();
+      const keep = { opponent: match.opponent, deck: match.deck, event: match.event, opponentDeck: match.opponentDeck, matchType: match.matchType, tabletop: match.tabletop };
+      match = defaultMatch(profileData.settings.timerMinutes); Object.assign(match, keep);
+      saveAll(); loadSettingsIntoInputs(); updateUI(); showToast("Current match reset.");
+    }
+
+    function hasMatchProgress() {
+      return match.p1 || match.p2 || match.xp1 || match.xp2 || match.matchP1 || match.matchP2 || match.timerRunning || match.overtime;
+    }
+
+    function startMatch() {
+      if (hasMatchProgress() && !confirm("Start a new match and discard the current unrecorded match?")) return;
+
+      // Capture the current Match Setup before creating the fresh match.
+      const setup = {
+        opponent: $("opponentInput").value.trim() || "Opponent",
+        event: $("eventInput").value.trim(),
+        matchType: $("matchTypeInput").value || "casual",
+        deck: $("deckInput").value.trim(),
+        opponentDeck: $("opponentDeckInput").value.trim(),
+        tabletop: match.tabletop
+      };
+
+      match = defaultMatch(profileData.settings.timerMinutes);
+      Object.assign(match, setup);
+      saveAll(); loadSettingsIntoInputs(); updateUI(); showScreen("tracker");
+      showToast(`Match started vs ${match.opponent}${match.opponentDeck ? ` · ${match.opponentDeck}` : ""}.`);
+    }
+
+    function formatTimer(seconds) {
+      const safe = Math.max(0, Math.floor(seconds));
+      const hours = Math.floor(safe / 3600);
+      const minutes = Math.floor((safe % 3600) / 60);
+      const secs = safe % 60;
+      if (hours) return `${hours}:${String(minutes).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
+      return `${minutes}:${String(secs).padStart(2,"0")}`;
+    }
+
+    function updateTimerFromClock(allowExpire = true) {
+      if (!match?.timerRunning || !match.timerEndAt) return;
+      match.timerRemaining = Math.max(0, Math.ceil((match.timerEndAt - Date.now()) / 1000));
+      [600,300,60].forEach(threshold => {
+        if (match.timerRemaining <= threshold && match.timerLastWarning > threshold) {
+          match.timerLastWarning = threshold;
+          feedback("warning");
+          showToast(threshold >= 60 ? `${threshold / 60} minute${threshold === 60 ? "" : "s"} remaining.` : `${threshold} seconds remaining.`);
+        }
+      });
+      if (match.timerRemaining <= 0 && !match.timerExpired && allowExpire) {
+        match.timerRunning = false; match.timerExpired = true; match.timerEndAt = null;
+        feedback("timer"); showToast("Time expired.");
+        document.body.classList.add("timer-expired-flash");
+        setTimeout(() => document.body.classList.remove("timer-expired-flash"), 1900);
+        if (profileData.settings.autoOvertime && !match.overtime) startOvertime(false);
+        syncWakeLock();
+      }
+    }
+
+    function updateTimerUI() {
+      if (!match) return;
+      const display = $("timerDisplay");
+      display.textContent = formatTimer(match.timerRemaining);
+      display.classList.toggle("warning", match.timerRemaining <= 300 && match.timerRemaining > 60);
+      display.classList.toggle("urgent", match.timerRemaining <= 60);
+      $("timerToggleBtn").textContent = match.timerRunning ? "Ⅱ" : "▶";
+      $("timerToggleBtn").setAttribute("aria-label", match.timerRunning ? "Pause match timer" : match.timerRemaining === 0 ? "Restart match timer" : "Start match timer");
+      $("timerStatus").textContent = match.timerRunning ? "Running" : match.timerExpired ? "Time expired" : match.timerRemaining < match.timerTotal ? "Paused" : "Ready";
+    }
+
+    function startTimerLoop() {
+      stopTimerLoop();
+      timerInterval = setInterval(() => {
+        if (!match) return;
+        if (match.timerRunning) { updateTimerFromClock(true); saveAll(); }
+        updateTimerUI();
+      }, 250);
+    }
+
+    function stopTimerLoop() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
+
+    function toggleTimer() {
+      ensureAudio();
+      if (match.timerRunning) {
+        updateTimerFromClock(false); match.timerRunning = false; match.timerEndAt = null;
+        showToast("Timer paused.");
+      } else {
+        if (match.timerRemaining <= 0) {
+          match.timerRemaining = match.timerTotal; match.timerExpired = false; match.timerLastWarning = 999999;
+        }
+        match.timerRunning = true; match.timerEndAt = Date.now() + match.timerRemaining * 1000;
+        showToast("Timer started.");
+      }
+      saveAll(); updateTimerUI(); syncWakeLock();
+    }
+
+    function resetTimer() {
+      match.timerRunning = false; match.timerEndAt = null;
+      match.timerTotal = profileData.settings.timerMinutes * 60;
+      match.timerRemaining = match.timerTotal; match.timerExpired = false; match.timerLastWarning = 999999;
+      saveAll(); updateTimerUI(); syncWakeLock(); showToast("Timer reset.");
+    }
+
+    async function syncWakeLock() {
+      const shouldHold = Boolean(profileData?.settings.wakeLock && match && (match.timerRunning || match.tabletop));
+      if (shouldHold && document.visibilityState === "visible" && "wakeLock" in navigator && !wakeLock) {
+        try {
+          wakeLock = await navigator.wakeLock.request("screen");
+          wakeLock.addEventListener("release", () => { wakeLock = null; updateWakeStatus(); });
+        } catch {}
+      } else if (!shouldHold && wakeLock) {
+        try { await wakeLock.release(); } catch {}
+        wakeLock = null;
+      }
+      updateWakeStatus();
+    }
+
+    function updateWakeStatus() {
+      if (!$("wakeStatus")) return;
+      if (!("wakeLock" in navigator)) $("wakeStatus").textContent = "Screen wake lock is not supported by this browser.";
+      else if (wakeLock) $("wakeStatus").textContent = "Screen is being kept awake.";
+      else $("wakeStatus").textContent = "Wake lock activates with the timer or tabletop mode.";
+    }
+
+    async function setTabletop(enabled, manageFullscreen = true) {
+      if (!match || tabletopTransitioning) return;
+      tabletopTransitioning = true;
+      try {
+        match.tabletop = Boolean(enabled);
+        document.body.classList.toggle("tabletop-mode", match.tabletop);
+        document.body.classList.toggle("no-opponent-rotate", !profileData.settings.rotateOpponent);
+        saveAll(); updateUI();
+        if (manageFullscreen && match.tabletop && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+          try { await document.documentElement.requestFullscreen(); } catch {}
+        } else if (manageFullscreen && !match.tabletop && document.fullscreenElement) {
+          try { await document.exitFullscreen(); } catch {}
+        }
+      } finally {
+        tabletopTransitioning = false;
+        syncWakeLock();
+      }
+    }
+
+    function toggleTabletop() { setTabletop(!match.tabletop); }
+
+    function calculateStreak() {
+      const matches = profileData.history.filter(item => item && item.type === "match");
+      if (!matches.length) return "–";
+      const first = matches[0].result;
+      if (!first || first === "draw") return "D1";
+      let count = 0;
+      for (const item of matches) { if (item.result !== first) break; count += 1; }
+      return `${first === "win" ? "W" : "L"}${count}`;
+    }
+
+    function groupedStats(fieldOrGetter, fallback = "Unknown") {
+      const groups = new Map();
+      profileData.history.filter(item => item?.type === "match").forEach(item => {
+        const rawName = typeof fieldOrGetter === "function" ? fieldOrGetter(item) : item[fieldOrGetter];
+        const key = String(rawName || fallback).trim() || fallback;
+        const group = groups.get(key) || { name:key, matches:0, wins:0, losses:0, draws:0 };
+        group.matches += 1;
+        if (item.result === "win") group.wins += 1;
+        if (item.result === "loss") group.losses += 1;
+        if (item.result === "draw") group.draws += 1;
+        groups.set(key, group);
+      });
+      return [...groups.values()].sort((a,b) => b.matches - a.matches || b.wins - a.wins).slice(0,8);
+    }
+
+    function renderBreakdown(id, groups) {
+      const target = $(id);
+      if (!groups.length) { target.innerHTML = '<div class="muted small">No recorded data yet.</div>'; return; }
+      target.innerHTML = groups.map(group => {
+        const decisive = group.wins + group.losses;
+        const rate = decisive ? Math.round(group.wins / decisive * 100) : 0;
+        const label = group.name === "me" ? "You went first" : group.name === "opponent" ? "Opponent went first" : group.name;
+        return `<div class="breakdown-row"><strong>${escapeHtml(label)}</strong><span>${group.wins}-${group.losses}-${group.draws}</span><span>${rate}%</span></div>`;
+      }).join("");
+    }
+
+    function getSavedDeckChoices(query = "") {
+      if (!profileData) return [];
+      const term = String(query || "").trim().toLowerCase();
+      return profileData.decks
+        .slice()
+        .sort((a,b) => a.name.localeCompare(b.name))
+        .filter(deck => !term || deck.name.toLowerCase().includes(term));
+    }
+
+    function renderDeckDropdown(query = "") {
+      const target = $("deckDropdownMenu");
+      if (!target || !profileData) return;
+      const decks = getSavedDeckChoices(query);
+      if (!profileData.decks.length) {
+        target.innerHTML = '<div class="deck-dropdown-empty">No saved decks yet. Add one in the <strong>Decks</strong> tab, or type any deck name here.</div>';
+        return;
+      }
+      if (!decks.length) {
+        target.innerHTML = '<div class="deck-dropdown-empty">No saved deck matches your text. You can still use the name you typed.</div>';
+        return;
+      }
+      target.innerHTML = decks.map(deck => {
+        const mainTotal = cardTotal(deck.main);
+        const sideTotal = cardTotal(deck.sideboard);
+        const meta = `${mainTotal} main${sideTotal ? ` · ${sideTotal} sideboard` : ""}`;
+        return `<button class="deck-dropdown-option" type="button" role="option" data-saved-deck-name="${escapeHtml(deck.name)}"><strong>${escapeHtml(deck.name)}</strong><span>${escapeHtml(meta)}</span></button>`;
+      }).join("");
+    }
+
+    function setDeckDropdown(open) {
+      const menu = $("deckDropdownMenu");
+      const button = $("deckDropdownBtn");
+      const input = $("deckInput");
+      if (!menu || !button || !input) return;
+      const shouldOpen = Boolean(open);
+      if (shouldOpen) renderDeckDropdown(input.value);
+      menu.classList.toggle("hidden", !shouldOpen);
+      button.setAttribute("aria-expanded", String(shouldOpen));
+      input.setAttribute("aria-expanded", String(shouldOpen));
+    }
+
+    function chooseSavedDeck(name) {
+      if (!match) return;
+      $("deckInput").value = name;
+      match.deck = name;
+      saveAll();
+      setDeckDropdown(false);
+      updateUI();
+      showToast(`Using ${name}.`);
+    }
+
+    function refreshDeckDatalist() {
+      renderDeckDropdown($("deckInput")?.value || "");
+    }
+
+    function normalizedDeckName(value) {
+      return String(value || "").trim().toLocaleLowerCase();
+    }
+
+    function savedDeckPerformance(deckName) {
+      const wanted = normalizedDeckName(deckName);
+      const matches = profileData.history.filter(item =>
+        item?.type === "match" && normalizedDeckName(item.deck) === wanted
+      );
+      const overall = { matches:0, wins:0, losses:0, draws:0 };
+      const matchupMap = new Map();
+      let missingOpponentDeck = 0;
+
+      matches.forEach(item => {
+        overall.matches += 1;
+        if (item.result === "win") overall.wins += 1;
+        if (item.result === "loss") overall.losses += 1;
+        if (item.result === "draw") overall.draws += 1;
+
+        const opponentDeck = String(item.opponentDeck || "").trim();
+        if (!opponentDeck) {
+          missingOpponentDeck += 1;
+          return;
+        }
+        const key = normalizedDeckName(opponentDeck);
+        const group = matchupMap.get(key) || {
+          name: opponentDeck,
+          matches: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0
+        };
+        group.matches += 1;
+        if (item.result === "win") group.wins += 1;
+        if (item.result === "loss") group.losses += 1;
+        if (item.result === "draw") group.draws += 1;
+        matchupMap.set(key, group);
+      });
+
+      const matchups = [...matchupMap.values()].sort((a,b) =>
+        b.matches - a.matches || b.wins - a.wins || a.name.localeCompare(b.name)
+      );
+      return { overall, matchups, missingOpponentDeck };
+    }
+
+    function winRateForRecord(record) {
+      const decisive = record.wins + record.losses;
+      return decisive ? Math.round(record.wins / decisive * 100) : 0;
+    }
+
+    function renderSavedDeckPerformance(deckName) {
+      const { overall, matchups, missingOpponentDeck } = savedDeckPerformance(deckName);
+      if (!overall.matches) {
+        return '<div class="deck-performance"><div class="deck-no-stats">No matches have been recorded with this saved deck yet.</div></div>';
+      }
+
+      const overallRate = winRateForRecord(overall);
+      const matchupRows = matchups.map(group => {
+        const rate = winRateForRecord(group);
+        return `<div class="deck-matchup-row"><strong>${escapeHtml(group.name)}</strong><span>${group.wins}-${group.losses}-${group.draws}</span><span class="deck-matchup-rate">${rate}%</span></div>`;
+      }).join("");
+      const unknownNote = missingOpponentDeck
+        ? `<div class="deck-no-stats">${missingOpponentDeck} match${missingOpponentDeck === 1 ? "" : "es"} did not include an opponent deck.</div>`
+        : "";
+      const matchupBlock = matchupRows
+        ? `<div class="deck-matchups"><div class="deck-matchups-title">Win rate against each deck</div>${matchupRows}</div>`
+        : '<div class="deck-no-stats">Add the opponent deck in Match Setup to build matchup win rates.</div>';
+
+      return `<div class="deck-performance">
+        <div class="deck-performance-summary">
+          <div><strong>Overall performance</strong><div class="deck-performance-record">${overall.matches} match${overall.matches === 1 ? "" : "es"} · ${overall.wins}-${overall.losses}-${overall.draws}</div></div>
+          <span class="deck-winrate-pill">${overallRate}%</span>
+        </div>
+        ${matchupBlock}
+        ${unknownNote}
+      </div>`;
+    }
+
+    function renderDecks() {
+      if (!profileData) return;
+      const search = $("deckSearch")?.value.trim().toLowerCase() || "";
+      const decks = profileData.decks
+        .filter(deck => !search || [deck.name, formatDeckText(deck)].join(" ").toLowerCase().includes(search))
+        .sort((a,b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+      const target = $("deckList");
+      if (!decks.length) {
+        target.innerHTML = '<div class="empty-state">No saved decks yet. Tap <strong>Import deck</strong> and paste your list.</div>';
+        return;
+      }
+      target.innerHTML = decks.map(deck => {
+        const mainTotal = cardTotal(deck.main);
+        const sideTotal = cardTotal(deck.sideboard);
+        return `<article class="deck-card">
+          <div class="deck-card-top"><div class="deck-card-main"><h3>${escapeHtml(deck.name)}</h3>
+          <div class="deck-meta">${mainTotal} main-deck cards · ${deck.main.length} unique${sideTotal ? ` · ${sideTotal} sideboard` : ""}</div></div></div>
+          ${renderSavedDeckPerformance(deck.name)}
+          <div class="deck-actions">
+            <button class="primary" data-deck-action="use" data-deck-id="${escapeHtml(deck.id)}" type="button">Use in match</button>
+            <button class="secondary" data-deck-action="edit" data-deck-id="${escapeHtml(deck.id)}" type="button">View / edit</button>
+            <button class="secondary" data-deck-action="copy" data-deck-id="${escapeHtml(deck.id)}" type="button">Copy</button>
+            <button class="secondary" data-deck-action="export" data-deck-id="${escapeHtml(deck.id)}" type="button">Export .txt</button>
+          </div>
+        </article>`;
+      }).join("");
+    }
+
+    function openDeckEditor(deckId = "") {
+      const deck = profileData.decks.find(item => item.id === deckId);
+      $("deckEditId").value = deck?.id || "";
+      $("deckDialogTitle").textContent = deck ? "Edit deck" : "Import deck";
+      $("deckNameInput").value = deck?.name || "";
+      $("deckImportText").value = deck ? formatDeckText(deck) : "";
+      $("deleteDeckBtn").classList.toggle("hidden", !deck);
+      previewDeckImport();
+      $("deckDialog").showModal();
+      setTimeout(() => (deck ? $("deckImportText") : $("deckNameInput")).focus(), 40);
+    }
+
+    function previewDeckImport() {
+      const parsed = parseDeckText($("deckImportText").value);
+      const mainTotal = cardTotal(parsed.main);
+      const sideTotal = cardTotal(parsed.sideboard);
+      const status = $("deckImportStatus");
+      const preview = $("deckImportPreview");
+      if (!mainTotal && !sideTotal) {
+        status.className = "deck-import-status";
+        status.textContent = "Paste a numbered deck list to preview it.";
+        preview.classList.add("hidden");
+        return parsed;
+      }
+      status.className = `deck-import-status ${parsed.ignored.length ? "warn" : "good"}`;
+      status.textContent = `${mainTotal} main-deck cards (${parsed.main.length} unique)${sideTotal ? ` · ${sideTotal} sideboard cards` : ""}${parsed.ignored.length ? ` · ${parsed.ignored.length} unrecognised line${parsed.ignored.length === 1 ? "" : "s"}` : ""}.`;
+      preview.textContent = formatDeckText({ name:"Preview", main:parsed.main, sideboard:parsed.sideboard });
+      if (parsed.ignored.length) preview.textContent += `\n\nNot imported:\n${parsed.ignored.join("\n")}`;
+      preview.classList.remove("hidden");
+      return parsed;
+    }
+
+    function saveDeckFromEditor() {
+      const name = $("deckNameInput").value.trim();
+      const parsed = previewDeckImport();
+      if (!name) return showToast("Enter a deck name.");
+      if (!parsed.main.length) return showToast("No numbered main-deck cards were found.");
+      pushUndo();
+      const id = $("deckEditId").value;
+      const deck = normalizeDeck({ id: id || uid(), name, main: parsed.main, sideboard: parsed.sideboard, updatedAt: new Date().toISOString() });
+      const index = profileData.decks.findIndex(item => item.id === id);
+      if (index >= 0) profileData.decks[index] = deck; else profileData.decks.unshift(deck);
+      saveAll(); refreshDeckDatalist(); renderDecks(); $("deckDialog").close(); showToast("Deck saved.");
+    }
+
+    function deleteDeckFromEditor() {
+      const id = $("deckEditId").value;
+      const deck = profileData.decks.find(item => item.id === id);
+      if (!deck || !confirm(`Delete “${deck.name}” from your deck library?`)) return;
+      pushUndo(); profileData.decks = profileData.decks.filter(item => item.id !== id);
+      saveAll(); refreshDeckDatalist(); renderDecks(); $("deckDialog").close(); showToast("Deck deleted.");
+    }
+
+    function useDeck(deckId) {
+      const deck = profileData.decks.find(item => item.id === deckId);
+      if (!deck) return;
+      match.deck = deck.name; saveAll(); updateUI(); showScreen("tracker"); showToast(`Using ${deck.name}.`);
+    }
+
+    async function copyTextReliable(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {}
+      }
+      const helper = document.createElement("textarea");
+      helper.value = text;
+      helper.setAttribute("readonly", "");
+      helper.style.position = "fixed";
+      helper.style.left = "-9999px";
+      helper.style.top = "0";
+      helper.style.opacity = "0";
+      document.body.appendChild(helper);
+      helper.focus();
+      helper.select();
+      helper.setSelectionRange(0, helper.value.length);
+      let copied = false;
+      try { copied = document.execCommand("copy"); } catch {}
+      helper.remove();
+      return copied;
+    }
+
+    async function copyDeck(deckId = $("deckEditId").value) {
+      const deck = profileData.decks.find(item => item.id === deckId);
+      const text = deck ? formatDeckText(deck) : $("deckImportText").value;
+      if (!text.trim()) return showToast("There is no deck list to copy.");
+      const copied = await copyTextReliable(text);
+      if (copied) showToast("Deck list copied.");
+      else {
+        $("deckImportText").value = text;
+        $("deckImportText").focus();
+        $("deckImportText").select();
+        showToast("The deck list is selected. Use Copy from your phone menu.");
+      }
+    }
+
+    async function saveTextFile(filename, text) {
+      const mime = "text/plain;charset=utf-8";
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: "Text file", accept: { "text/plain": [".txt"] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(text);
+          await writable.close();
+          return "saved";
+        } catch (error) {
+          if (error?.name === "AbortError") return "cancelled";
+        }
+      }
+      if (typeof File !== "undefined" && navigator.share && navigator.canShare) {
+        try {
+          const file = new File([text], filename, { type: mime });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: filename });
+            return "shared";
+          }
+        } catch (error) {
+          if (error?.name === "AbortError") return "cancelled";
+        }
+      }
+      downloadBlob(filename, new Blob([text], { type: mime }));
+      return "downloaded";
+    }
+
+    async function exportDeck(deckId = $("deckEditId").value) {
+      const deck = profileData.decks.find(item => item.id === deckId);
+      const name = deck?.name || $("deckNameInput").value.trim() || "riftbound-deck";
+      const text = deck ? formatDeckText(deck) : $("deckImportText").value;
+      if (!text.trim()) return showToast("There is no deck list to export.");
+      const safeName = name.replace(/[^a-z0-9-_]+/gi,"-").replace(/^-+|-+$/g,"") || "riftbound-deck";
+      try {
+        const result = await saveTextFile(`${safeName}.txt`, text);
+        if (result === "saved" || result === "downloaded") showToast("Deck exported as a .txt file.");
+        if (result === "shared") showToast("Deck file opened in the share/save menu.");
+      } catch {
+        showToast("The deck could not be exported on this browser.");
+      }
+    }
+
+    function handleDeckListAction(event) {
+      const button = event.target.closest("[data-deck-action]");
+      if (!button) return;
+      const id = button.dataset.deckId;
+      if (button.dataset.deckAction === "use") useDeck(id);
+      if (button.dataset.deckAction === "edit") openDeckEditor(id);
+      if (button.dataset.deckAction === "copy") copyDeck(id);
+      if (button.dataset.deckAction === "export") exportDeck(id);
+    }
+
+    function updateStats() {
+      if (!profileData) return;
+      const stats = profileData.stats;
+      const decisive = stats.wins + stats.losses;
+      const winRate = decisive ? Math.round((stats.wins / decisive) * 100) : 0;
+      $("totalMatches").textContent = stats.totalMatches;
+      $("winStat").textContent = stats.wins;
+      $("lossStat").textContent = stats.losses;
+      $("drawStat").textContent = stats.draws;
+      $("winRate").textContent = `${winRate}%`;
+      $("gamesWon").textContent = stats.gamesWon;
+      $("gamesLost").textContent = stats.gamesLost;
+      $("streakStat").textContent = calculateStreak();
+      renderBreakdown("deckBreakdown", groupedStats("deck"));
+      renderBreakdown("opponentDeckBreakdown", groupedStats("opponentDeck"));
+      renderBreakdown("eventBreakdown", groupedStats("event"));
+      renderBreakdown("matchTypeBreakdown", groupedStats("matchType"));
+    }
+
+    function formatDate(value) {
+      if (!value) return "Imported from old tracker";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "Unknown date";
+      return new Intl.DateTimeFormat(undefined, { year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" }).format(date);
+    }
+
+    function updateHistory() {
+      if (!profileData) return;
+      const list = $("historyList");
+      const search = $("historySearch").value.trim().toLowerCase();
+      const filter = $("historyFilter").value;
+      const items = profileData.history.filter(item => {
+        const type = item?.type || "legacy";
+        const result = type === "match" ? item.result : type;
+        if (filter !== "all" && result !== filter) return false;
+        if (!search) return true;
+        return [item.opponent,item.deck,item.event,item.note,item.text,item.yourLeader,item.opponentLeader,item.opponentDeck,item.matchType].filter(Boolean).join(" ").toLowerCase().includes(search);
+      });
+      if (!items.length) { list.innerHTML = '<div class="empty-state">No matching history yet.</div>'; return; }
+      list.innerHTML = items.map(item => {
+        if (item.type === "match") {
+          const resultLabel = item.result === "win" ? "W" : item.result === "loss" ? "L" : "D";
+          const score = `${item.scoreP1 ?? 0}–${item.scoreP2 ?? 0}`;
+          const details = [formatDate(item.date)];
+          if (item.matchType) details.push(`Type: ${escapeHtml(item.matchType)}`);
+          if (item.event) details.push(`Event: ${escapeHtml(item.event)}`);
+          if (item.deck) details.push(`Your deck: ${escapeHtml(item.deck)}`);
+          details.push(`Opponent deck: ${escapeHtml(item.opponentDeck || "Not entered")}`);
+          return `<article class="history-item"><div class="history-top"><span class="result-badge ${escapeHtml(item.result)}">${resultLabel}</span><div class="history-main"><strong>${escapeHtml(username)} ${score} ${escapeHtml(item.opponent || "Opponent")}</strong><div class="history-meta">${details.filter(Boolean).join(" · ")}</div>${item.note ? `<div class="history-note">${escapeHtml(item.note)}</div>` : ""}</div><button class="secondary history-edit" data-history-id="${escapeHtml(item.id)}" type="button">Edit</button></div></article>`;
+        }
+        return `<article class="history-item"><div class="history-top"><span class="result-badge draw">OLD</span><div class="history-main"><strong>${escapeHtml(item.text || "Legacy history entry")}</strong><div class="history-meta">Imported from the previous tracker</div></div></div></article>`;
+      }).join("");
+    }
+
+    function toDateTimeLocal(value) {
+      const date = new Date(value || Date.now());
+      const offset = date.getTimezoneOffset();
+      return new Date(date.getTime() - offset * 60000).toISOString().slice(0,16);
+    }
+
+    function openHistoryEditor(id) {
+      const item = profileData.history.find(entry => entry.id === id && entry.type === "match");
+      if (!item) return;
+      $("historyEditId").value = item.id;
+      $("historyEditDate").value = toDateTimeLocal(item.date);
+      $("historyEditResult").value = item.result || "draw";
+      $("historyEditOpponent").value = item.opponent || "Opponent";
+      $("historyEditEvent").value = item.event || "";
+      $("historyEditMatchType").value = ["casual","tournament","testing"].includes(item.matchType) ? item.matchType : "casual";
+      $("historyEditDeck").value = item.deck || "";
+      $("historyEditOpponentDeck").value = item.opponentDeck || "";
+      $("historyEditScoreP1").value = item.scoreP1 ?? 0;
+      $("historyEditScoreP2").value = item.scoreP2 ?? 0;
+      $("historyDialog").showModal();
+    }
+
+    function saveHistoryEdit() {
+      const id = $("historyEditId").value;
+      const index = profileData.history.findIndex(item => item.id === id && item.type === "match");
+      if (index < 0) return;
+      pushUndo();
+      const oldItem = deepClone(profileData.history[index]);
+      applyMatchToStats(oldItem, -1);
+      const newItem = {
+        ...oldItem,
+        date: new Date($("historyEditDate").value || Date.now()).toISOString(),
+        result: $("historyEditResult").value,
+        opponent: $("historyEditOpponent").value.trim() || "Opponent",
+        event: $("historyEditEvent").value.trim(),
+        matchType: $("historyEditMatchType").value,
+        deck: $("historyEditDeck").value.trim(),
+        opponentDeck: $("historyEditOpponentDeck").value.trim(),
+        scoreP1: clampInt($("historyEditScoreP1").value, 0, 0, 99),
+        scoreP2: clampInt($("historyEditScoreP2").value, 0, 0, 99)
+      };
+      profileData.history[index] = newItem; applyMatchToStats(newItem, 1);
+      saveAll(); updateUI(); $("historyDialog").close(); showToast("Match updated.");
+    }
+
+    function deleteHistoryEntry() {
+      const id = $("historyEditId").value;
+      const index = profileData.history.findIndex(item => item.id === id && item.type === "match");
+      if (index < 0 || !confirm("Delete this match from history and statistics?")) return;
+      pushUndo(); const [item] = profileData.history.splice(index,1); applyMatchToStats(item,-1);
+      saveAll(); updateUI(); $("historyDialog").close(); showToast("Match deleted.");
+    }
+
+    function updateUI() {
+      if (!profileData || !match) return;
+      $("playerOneName").textContent = username;
+      $("playerTwoName").textContent = match.opponent || "Opponent";
+      $("p1Score").textContent = match.p1; $("p2Score").textContent = match.p2;
+      $("p1Xp").textContent = match.xp1; $("p2Xp").textContent = match.xp2;
+      $("playerOneGames").textContent = `Games: ${match.matchP1}`;
+      $("playerTwoGames").textContent = `Games: ${match.matchP2}`;
+      $("matchScore").textContent = `${match.matchP1} – ${match.matchP2}`;
+      $("winningScoreDisplay").textContent = profileData.settings.winningScore;
+      $("diceResult").textContent = match.dice ?? "–";
+      $("diceQuickResult").textContent = match.dice ?? "–";
+      $("opponentInput").value = match.opponent;
+      $("deckInput").value = match.deck; $("eventInput").value = match.event;
+      $("opponentDeckInput").value = match.opponentDeck; $("matchTypeInput").value = match.matchType;
+      $("overtimeBanner").classList.toggle("hidden", !match.overtime);
+      $("overtimeText").textContent = `${match.overtimeTurns} turn${match.overtimeTurns === 1 ? "" : "s"} remaining`;
+      $("overtimeQuickText").textContent = match.overtime ? `Next OT (${match.overtimeTurns})` : "Overtime";
+      $("overtimeBtn").classList.toggle("primary", match.overtime);
+      $("tabletopBtn").classList.toggle("primary", match.tabletop);
+      document.body.classList.toggle("tabletop-mode", match.tabletop);
+      document.body.classList.toggle("no-opponent-rotate", !profileData.settings.rotateOpponent);
+      updateTimerUI(); updateUndoButton(); refreshDeckDatalist(); updateStats(); updateHistory(); updateWakeStatus();
+    }
+
+    function showScreen(name) {
+      document.querySelectorAll(".screen").forEach(screen => screen.classList.toggle("active", screen.id === name));
+      document.querySelectorAll(".nav-button").forEach(button => button.classList.toggle("active", button.dataset.screen === name));
+      if (name === "decks") renderDecks();
+      if (name === "history") updateHistory();
+      if (name === "stats") updateStats();
+      window.scrollTo({ top:0, behavior:"smooth" });
+    }
+
+    function showToast(message) {
+      const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 2500);
+    }
+
+    function downloadBlob(filename, blob) {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.rel = "noopener";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      setTimeout(() => {
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      }, 1500);
+    }
+
+    function exportHistoryCsv() {
+      const rows = [["Date","Result","Opponent","Your leader","Your deck","Opponent leader","Opponent deck/colors","Event","Match type","First player","Your games","Opponent games","Notes"]];
+      profileData.history.filter(item => item.type === "match").forEach(item => rows.push([
+        item.date || "", item.result || "", item.opponent || "", item.yourLeader || "", item.deck || "",
+        item.opponentLeader || "", item.opponentDeck || "", item.event || "", item.matchType || "",
+        item.firstPlayer || "unknown", item.scoreP1 ?? "", item.scoreP2 ?? "", item.note || ""
+      ]));
+      const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"','""')}"`).join(",")).join("\r\n");
+      downloadBlob(`riftbound-history-${username}.csv`, new Blob(["\ufeff",csv], { type:"text/csv;charset=utf-8" }));
+    }
+
+    function exportBackup() {
+      saveInputsToMatch(); saveAll();
+      const backup = { app:"Riftbound Tracker", version:6, exportedAt:new Date().toISOString(), profile:username, profileData, match };
+      downloadBlob(`riftbound-backup-${username}.json`, new Blob([JSON.stringify(backup,null,2)], { type:"application/json" }));
+    }
+
+    function importBackup(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const backup = JSON.parse(String(reader.result));
+          const importedData = normalizeProfileData(backup.profileData || backup.data || backup);
+          const importedMatch = normalizeMatch(backup.match || defaultMatch(importedData.settings.timerMinutes), importedData.settings);
+          if (!confirm("Replace the current profile data with this backup?")) return;
+          pushUndo(); profileData = importedData; match = importedMatch;
+          saveAll(); loadSettingsIntoInputs(); updateUI(); syncWakeLock(); showToast("Backup imported.");
+        } catch { showToast("That backup file could not be read."); }
+        finally { $("importBackupFile").value = ""; }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetProfileData() {
+      if (!confirm("Reset all stats and history for this profile? This cannot be undone after closing the app.")) return;
+      pushUndo(); const settings = deepClone(profileData.settings);
+      profileData = defaultProfileData(); profileData.settings = settings; match = defaultMatch(settings.timerMinutes);
+      saveAll(); loadSettingsIntoInputs(); updateUI(); showToast("Profile data reset.");
+    }
+
+    function deleteProfile() {
+      if (!confirm(`Delete the profile “${username}” and all of its data?`)) return;
+      const profiles = loadProfiles().filter(name => name !== username); saveProfiles(profiles);
+      localStorage.removeItem(DATA_PREFIX + username); localStorage.removeItem(MATCH_PREFIX + username);
+      localStorage.removeItem(`stats_${username}`); localStorage.removeItem(`win_${username}`); localStorage.removeItem(`opponent_${username}`);
+      if (localStorage.getItem(LAST_PROFILE_KEY) === username) localStorage.removeItem(LAST_PROFILE_KEY);
+      switchProfile(); showToast("Profile deleted.");
+    }
+
+    function openEvents() { window.open("https://locator.riftbound.uvsgames.com/my-events", "_blank", "noopener,noreferrer"); }
+
+    function bindLongPressXp(element, player) {
+      let timer = null; let longPressed = false;
+      const cancel = () => { if (timer) clearTimeout(timer); timer = null; };
+      element.addEventListener("pointerdown", event => {
+        event.preventDefault(); longPressed = false;
+        timer = setTimeout(() => { longPressed = true; setXp(player,0); showToast("XP reset."); }, 650);
+      });
+      ["pointerup","pointercancel","pointerleave"].forEach(type => element.addEventListener(type, event => {
+        event.preventDefault(); cancel();
+        if (type === "pointerup" && !longPressed) openXpDialog(player);
+      }));
+      element.addEventListener("contextmenu", event => event.preventDefault());
+    }
+
+    function bindHoldAction(button, action) {
+      let holdTimer = null; let completed = false;
+      const cancel = () => { if (holdTimer) clearTimeout(holdTimer); holdTimer = null; button.classList.remove("holding"); };
+      button.addEventListener("pointerdown", event => {
+        event.preventDefault(); completed = false; button.classList.add("holding");
+        holdTimer = setTimeout(() => { completed = true; cancel(); action(); }, 900);
+      });
+      ["pointerup","pointercancel","pointerleave"].forEach(type => button.addEventListener(type, event => {
+        event.preventDefault(); const wasCompleted = completed; cancel();
+        if (type === "pointerup" && !wasCompleted) showToast("Hold the button for one second to reset the match.");
+      }));
+      button.addEventListener("click", event => event.preventDefault());
+      button.addEventListener("contextmenu", event => event.preventDefault());
+    }
+
+    function bindSwipeUndo() {
+      let startX = null; let startY = null;
+      const tracker = $("tracker");
+      tracker.addEventListener("pointerdown", event => {
+        if (event.target.closest("button,input,select,textarea,dialog,summary")) return;
+        startX = event.clientX; startY = event.clientY;
+      });
+      tracker.addEventListener("pointerup", event => {
+        if (startX === null) return;
+        const dx = event.clientX - startX; const dy = event.clientY - startY;
+        startX = null; startY = null;
+        if (dx < -100 && Math.abs(dy) < 55) undoLast();
+      });
+      tracker.addEventListener("pointercancel", () => { startX = null; startY = null; });
+    }
+
+    function bindEvents() {
+      $("createProfileBtn").addEventListener("click", createProfile);
+      $("loadProfileBtn").addEventListener("click", openSelectedProfile);
+      $("newProfileName").addEventListener("keydown", event => { if (event.key === "Enter") createProfile(); });
+      $("switchProfileBtn").addEventListener("click", switchProfile);
+
+      document.querySelectorAll(".nav-button").forEach(button => button.addEventListener("click", () => showScreen(button.dataset.screen)));
+      document.querySelectorAll(".score-button").forEach(button => button.addEventListener("click", () => changeScore(Number(button.dataset.player), Number(button.dataset.delta))));
+      document.querySelectorAll(".xp-button").forEach(button => button.addEventListener("click", () => changeXp(Number(button.dataset.xpPlayer), Number(button.dataset.xpDelta))));
+      document.querySelectorAll("[data-xp-display]").forEach(element => bindLongPressXp(element, Number(element.dataset.xpDisplay)));
+
+      [$("opponentInput"),$("deckInput"),$("eventInput"),$("opponentDeckInput"),$("matchTypeInput")]
+        .forEach(input => input.addEventListener("input", () => { saveInputsToMatch(); saveAll(); $("playerTwoName").textContent = match.opponent; }));
+
+      $("deckDropdownBtn").addEventListener("click", () => {
+        const isOpen = !$("deckDropdownMenu").classList.contains("hidden");
+        setDeckDropdown(!isOpen);
+      });
+      $("deckInput").addEventListener("focus", () => setDeckDropdown(true));
+      $("deckInput").addEventListener("input", () => {
+        renderDeckDropdown($("deckInput").value);
+        setDeckDropdown(true);
+      });
+      $("deckInput").addEventListener("keydown", event => {
+        if (event.key === "Escape") setDeckDropdown(false);
+      });
+      $("deckDropdownMenu").addEventListener("click", event => {
+        const option = event.target.closest("[data-saved-deck-name]");
+        if (option) chooseSavedDeck(option.dataset.savedDeckName);
+      });
+      document.addEventListener("pointerdown", event => {
+        if (!event.target.closest("#deckCombobox")) setDeckDropdown(false);
+      });
+
+      [$("winInput"),$("bestOfInput"),$("timerMinutesInput"),$("autoOvertimeInput"),$("wakeLockInput"),$("hapticsInput"),$("soundInput"),$("rotateOpponentInput")]
+        .forEach(input => input.addEventListener("change", () => { saveSettingsFromInputs(); if (input === $("soundInput") && input.checked) { ensureAudio(); tone(620,.08,.04); } }));
+
+      document.querySelectorAll(".timer-preset").forEach(button => button.addEventListener("click", () => {
+        $("timerMinutesInput").value = button.dataset.minutes; saveSettingsFromInputs(); resetTimer();
+      }));
+
+      $("undoBtn").addEventListener("click", undoLast);
+      $("rollDiceBtn").addEventListener("click", rollDice);
+      $("overtimeBtn").addEventListener("click", handleOvertimeAction);
+      $("nextTurnBtn").addEventListener("click", nextOvertimeTurn);
+      $("awardMeBtn").addEventListener("click", () => forceMatchResult("win"));
+      $("awardOpponentBtn").addEventListener("click", () => forceMatchResult("loss"));
+      $("recordDrawBtn").addEventListener("click", () => finalizeMatch("draw"));
+      $("resetGameBtn").addEventListener("click", resetCurrentGame);
+      bindHoldAction($("resetMatchBtn"), resetEntireMatch);
+      $("quickMatchBtn").addEventListener("click", startMatch);
+      $("quickMatchSetupBtn").addEventListener("click", startMatch);
+      $("tabletopBtn").addEventListener("click", toggleTabletop);
+      $("headerTabletopBtn").addEventListener("click", () => setTabletop(true));
+      $("tabletopExitBtn").addEventListener("click", () => setTabletop(false));
+
+      $("timerToggleBtn").addEventListener("click", toggleTimer);
+      $("timerResetBtn").addEventListener("click", resetTimer);
+
+      $("deckSearch").addEventListener("input", renderDecks);
+      $("newDeckBtn").addEventListener("click", () => openDeckEditor());
+      $("deckList").addEventListener("click", handleDeckListAction);
+      $("deckImportText").addEventListener("input", previewDeckImport);
+      $("saveDeckBtn").addEventListener("click", saveDeckFromEditor);
+      $("copyDeckBtn").addEventListener("click", () => copyDeck());
+      $("exportDeckBtn").addEventListener("click", () => exportDeck());
+      $("deleteDeckBtn").addEventListener("click", deleteDeckFromEditor);
+
+      $("historySearch").addEventListener("input", updateHistory);
+      $("historyFilter").addEventListener("change", updateHistory);
+      $("historyList").addEventListener("click", event => {
+        const button = event.target.closest("[data-history-id]");
+        if (button) openHistoryEditor(button.dataset.historyId);
+      });
+      $("saveHistoryBtn").addEventListener("click", saveHistoryEdit);
+      $("deleteHistoryBtn").addEventListener("click", deleteHistoryEntry);
+      $("exportCsvBtn").addEventListener("click", exportHistoryCsv);
+
+      document.querySelectorAll("[data-close-dialog]").forEach(button => button.addEventListener("click", () => $(button.dataset.closeDialog).close()));
+      document.querySelectorAll(".xp-dialog-delta").forEach(button => button.addEventListener("click", () => {
+        changeXp(activeXpPlayer, Number(button.dataset.delta)); openXpDialogRefresh();
+      }));
+      $("xpResetBtn").addEventListener("click", () => { setXp(activeXpPlayer,0); openXpDialogRefresh(); });
+      $("xpSetExactBtn").addEventListener("click", () => { setXp(activeXpPlayer,$("xpExactInput").value); openXpDialogRefresh(); });
+
+      $("openEventsBtn").addEventListener("click", openEvents);
+      $("exportBackupBtn").addEventListener("click", exportBackup);
+      $("importBackupBtn").addEventListener("click", () => $("importBackupFile").click());
+      $("importBackupFile").addEventListener("change", event => importBackup(event.target.files?.[0]));
+      $("resetStatsBtn").addEventListener("click", resetProfileData);
+      $("deleteProfileBtn").addEventListener("click", deleteProfile);
+
+      bindSwipeUndo();
+
+      window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); deferredInstallPrompt = event; $("installBtn").classList.remove("hidden"); });
+      $("installBtn").addEventListener("click", async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null; $("installBtn").classList.add("hidden");
+      });
+      window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; $("installBtn").classList.add("hidden"); });
+      document.addEventListener("fullscreenchange", () => {
+        if (!document.fullscreenElement && match?.tabletop && !tabletopTransitioning) setTabletop(false, false);
+      });
+      window.addEventListener("beforeunload", () => { if (username) { updateTimerFromClock(false); saveInputsToMatch(); saveAll(); } });
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { updateTimerFromClock(true); syncWakeLock(); } });
+    }
+
+    function openXpDialogRefresh() {
+      const value = activeXpPlayer === 1 ? match.xp1 : match.xp2;
+      $("xpDialogTitle").textContent = `${activeXpPlayer === 1 ? username : match.opponent} XP / Level: ${value}`;
+      $("xpExactInput").value = value;
+    }
+
+    function init() {
+      bindEvents(); refreshProfileDropdown(); updateUndoButton(); updateWakeStatus();
+      if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    }
+
+    init();
+  </script>
+</body>
+</html>
