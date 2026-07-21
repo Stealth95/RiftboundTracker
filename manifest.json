@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Riftbound Tracker",
   "short_name": "Riftbound",
-  "description": "Riftbound Ahri-themed tabletop score, XP, saved decks, timer and match history tracker.",
+  "description": "Riftbound tabletop score, XP, saved decks, timer and match history tracker.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -11,6 +11,6 @@
   "theme_color": "#1b1031",
   "icons": [
     { "src": "RiftboundS.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "RiftboundL.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any" }
+    { "src": "RiftboundL.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }
