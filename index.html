@@ -1,340 +1,1820 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riftbound Tracker</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1d2d">
+  <meta name="description" content="Riftbound tabletop score, XP, timer, history and matchup tracker">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="RiftboundS.png">
+  <link rel="apple-touch-icon" href="RiftboundS.png">
+  <title>Riftbound Tracker</title>
 
-    <style>
-        body{margin:0;font-family:Arial;background:#0f172a;color:white;}
-        .menu{display:flex;justify-content:center;gap:8px;padding:10px;background:#0b1220;position:sticky;top:0;flex-wrap:wrap;}
-        button{padding:8px 12px;border:none;border-radius:8px;font-size:13px;margin:4px;}
-        .screen{display:none;padding:20px;min-height:80vh;}
-        .active{display:block;}
-        .score-area{height:22vh;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:bold;cursor:pointer;}
-        .top{background:#1e293b;}
-        .bottom{background:#334155;}
-        .minus-btn{background:#7f1d1d;}
-        .dice-box{margin:10px 0;font-size:18px;font-weight:bold;}
-        input,select{padding:6px;border-radius:6px;border:none;}
-        .overtime-box{margin-top:10px;color:#facc15;font-weight:bold;}
-        .admin-container{margin-top:40px;text-align:center;}
-        .admin-btn{background:#111827;font-size:11px;opacity:0.6;}
-    </style>
+  <style>
+    :root {
+      --bg: #07131f;
+      --panel: #0d2233;
+      --panel-2: #102a3f;
+      --panel-3: #17354b;
+      --text: #f8fafc;
+      --muted: #9fb3c5;
+      --line: rgba(255,255,255,.10);
+      --accent: #f58a07;
+      --accent-2: #ffad3d;
+      --danger: #b83a45;
+      --success: #22a06b;
+      --warning: #eab308;
+      --shadow: 0 14px 34px rgba(0,0,0,.26);
+      --radius: 18px;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(245,138,7,.16), transparent 38%),
+        linear-gradient(180deg, #0a1a29 0%, var(--bg) 38%);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { touch-action: manipulation; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid rgba(245,138,7,.45);
+      outline-offset: 2px;
+    }
+
+    .hidden { display: none !important; }
+    .muted { color: var(--muted); }
+    .small { font-size: .84rem; }
+    .nowrap { white-space: nowrap; }
+    .shell { width: min(100%, 980px); margin: 0 auto; min-height: 100dvh; }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      padding-top: calc(10px + env(safe-area-inset-top));
+      background: rgba(7,19,31,.92);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      object-fit: cover;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.10);
+    }
+    .brand-copy { min-width: 0; flex: 1; }
+    .brand-title { font-weight: 850; letter-spacing: .01em; }
+    .brand-subtitle { color: var(--muted); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .icon-button, .compact-button {
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: rgba(255,255,255,.06);
+      border-radius: 12px;
+      min-height: 42px;
+      padding: 9px 12px;
+      cursor: pointer;
+    }
+    .icon-button:hover, .compact-button:hover { background: rgba(255,255,255,.11); }
+
+    main { padding: 16px 14px 100px; }
+    .screen { display: none; animation: fade-in .16s ease-out; }
+    .screen.active { display: block; }
+    @keyframes fade-in { from { opacity: .3; transform: translateY(4px); } }
+
+    .hero { text-align: center; padding: 30px 18px 20px; }
+    .hero img { width: 118px; height: 118px; border-radius: 28px; box-shadow: var(--shadow); }
+    .hero h1 { margin: 18px 0 4px; font-size: 1.75rem; }
+    .hero p { margin: 0; color: var(--muted); }
+
+    .card {
+      background: linear-gradient(180deg, rgba(16,42,63,.96), rgba(13,34,51,.96));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .card.flat { box-shadow: none; }
+    .card h2, .card h3 { margin-top: 0; }
+    .section-title { margin: 8px 2px 12px; font-size: 1.12rem; }
+
+    .field-grid { display: grid; gap: 12px; }
+    .field-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .field-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    label.field { display: grid; gap: 6px; color: var(--muted); font-size: .82rem; font-weight: 700; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--text);
+      background: rgba(0,0,0,.24);
+      padding: 11px 12px;
+      min-height: 44px;
+    }
+    textarea { resize: vertical; min-height: 88px; }
+
+    .button-row { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
+    .button-row > button { flex: 1 1 auto; }
+    .primary, .secondary, .danger, .success {
+      border: 0;
+      border-radius: 13px;
+      min-height: 46px;
+      padding: 11px 15px;
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #1c1206; }
+    .secondary { background: rgba(255,255,255,.09); border: 1px solid var(--line); }
+    .secondary.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #1c1206; border-color: transparent; }
+    .danger { background: var(--danger); }
+    .success { background: var(--success); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .setup-summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; }
+    details.setup-card > summary { list-style: none; }
+    details.setup-card > summary::-webkit-details-marker { display: none; }
+
+    .match-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+    .match-chip { background: rgba(0,0,0,.22); border: 1px solid var(--line); border-radius: 14px; padding: 10px 6px; }
+    .match-chip strong { display: block; font-size: 1.22rem; margin-top: 2px; }
+    .match-chip span { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+
+    .scoreboard { display: grid; gap: 13px; }
+    .player-card {
+      position: relative;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background: linear-gradient(145deg, var(--panel-2), var(--panel));
+      box-shadow: var(--shadow);
+      transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+    }
+    .player-card.opponent { background: linear-gradient(145deg, #173247, #10283b); }
+    .player-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 13px 16px 0; }
+    .player-name { font-size: 1.03rem; font-weight: 850; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .game-wins { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+
+    .score-controls {
+      display: grid;
+      grid-template-columns: 82px minmax(110px, 1fr) 82px;
+      align-items: stretch;
+      padding: 10px 12px;
+      gap: 10px;
+    }
+    .score-button {
+      border: 0;
+      border-radius: 18px;
+      color: white;
+      font-size: 1.45rem;
+      font-weight: 900;
+      cursor: pointer;
+      min-height: 102px;
+    }
+    .score-button.minus { background: rgba(184,58,69,.82); }
+    .score-button.plus { background: linear-gradient(145deg, #e97b00, var(--accent)); color: #1d1205; }
+    .score-button:active, .xp-button:active { transform: scale(.97); }
+    .score-display {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      place-items: center;
+      background: rgba(0,0,0,.24);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 9px;
+      overflow: visible;
+    }
+    .resource-label { color: var(--muted); font-size: .7rem; font-weight: 900; letter-spacing: .11em; text-transform: uppercase; }
+    .score-value { display: grid; place-items: center; font-size: clamp(3.3rem, 14vw, 5.4rem); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; user-select: none; }
+
+    .xp-controls {
+      display: grid;
+      grid-template-columns: minmax(70px, 1fr) 50px 66px repeat(3, 50px);
+      align-items: center;
+      gap: 7px;
+      padding: 0 12px 14px;
+    }
+    .xp-heading { color: var(--accent-2); font-size: .72rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+    .xp-button { min-height: 48px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.08); color: var(--text); font-weight: 900; cursor: pointer; }
+    .xp-button.gain { background: rgba(245,138,7,.18); color: var(--accent-2); }
+    .xp-value {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 52px;
+      border: 1px solid rgba(245,138,7,.34);
+      border-radius: 14px;
+      background: rgba(245,138,7,.10);
+      color: var(--accent-2);
+      font-size: 1.75rem;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+      user-select: none;
+    }
+    .xp-value::after { content: "tap"; position: absolute; right: 5px; bottom: 2px; font-size: .48rem; color: var(--muted); font-weight: 700; }
+
+    .delta-pop {
+      position: absolute;
+      z-index: 6;
+      left: 50%;
+      top: 20%;
+      transform: translate(-50%, 0);
+      font-size: 1.25rem;
+      font-weight: 950;
+      color: var(--accent-2);
+      pointer-events: none;
+      animation: pop-up .65s ease-out forwards;
+      text-shadow: 0 2px 8px rgba(0,0,0,.6);
+    }
+    .delta-pop.negative { color: #ff929c; }
+    @keyframes pop-up { to { opacity: 0; transform: translate(-50%, -36px) scale(1.15); } }
+
+    .timer-strip {
+      display: grid;
+      grid-template-columns: 44px auto minmax(0, 1fr) 40px;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0 14px;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.045);
+    }
+    .timer-toggle, .timer-reset {
+      width: 40px;
+      height: 40px;
+      min-height: 40px;
+      padding: 0;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-weight: 950;
+      cursor: pointer;
+    }
+    .timer-toggle { background: rgba(245,138,7,.18); color: var(--accent-2); border-color: rgba(245,138,7,.28); }
+    .timer-reset { background: transparent; color: var(--muted); }
+    .timer-copy { min-width: 92px; }
+    .timer-label { display: block; color: var(--muted); font-size: .62rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+    .timer-display { font-size: 1.65rem; font-weight: 950; letter-spacing: .03em; font-variant-numeric: tabular-nums; line-height: 1.05; }
+    .timer-display.warning { color: #fde68a; }
+    .timer-display.urgent { color: #ff929c; animation: timer-pulse 1s infinite; }
+    .timer-status { color: var(--muted); font-size: .76rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @keyframes timer-pulse { 50% { opacity: .55; } }
+
+    .quick-actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 14px 0; }
+    .quick-actions button { min-height: 52px; padding: 8px; }
+
+    .overtime-banner { border: 1px solid rgba(234,179,8,.35); background: rgba(234,179,8,.10); color: #fde68a; padding: 13px; border-radius: 14px; margin: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+    details { border: 1px solid var(--line); border-radius: 14px; background: rgba(0,0,0,.14); margin-top: 12px; }
+    summary { cursor: pointer; padding: 13px 14px; font-weight: 800; }
+    details > .details-body { padding: 0 14px 14px; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .stat-card { border: 1px solid var(--line); border-radius: 15px; padding: 13px; background: rgba(0,0,0,.18); }
+    .stat-card span { color: var(--muted); font-size: .78rem; font-weight: 750; }
+    .stat-card strong { display: block; margin-top: 5px; font-size: 1.55rem; font-variant-numeric: tabular-nums; }
+    .breakdown-grid { display: grid; gap: 12px; margin-top: 14px; }
+    .breakdown-card { border: 1px solid var(--line); border-radius: 15px; padding: 13px; background: rgba(0,0,0,.16); }
+    .breakdown-card h3 { margin: 0 0 10px; font-size: .95rem; }
+    .breakdown-list { display: grid; gap: 7px; }
+    .breakdown-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 9px; align-items: center; font-size: .82rem; }
+    .breakdown-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .breakdown-row span { color: var(--muted); }
+
+    .history-tools { display: grid; grid-template-columns: 1fr 140px; gap: 9px; margin-bottom: 12px; }
+    .history-list { display: grid; gap: 10px; }
+    .history-item { border: 1px solid var(--line); border-radius: 15px; background: rgba(0,0,0,.17); padding: 13px; }
+    .history-top { display: flex; align-items: flex-start; gap: 9px; }
+    .history-main { flex: 1; min-width: 0; }
+    .history-main strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .history-meta { color: var(--muted); font-size: .78rem; margin-top: 4px; line-height: 1.5; }
+    .history-note { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.05); font-size: .8rem; line-height: 1.45; }
+    .history-edit { flex: 0 0 auto; min-height: 36px; padding: 6px 10px; }
+    .result-badge { display: inline-grid; place-items: center; min-width: 34px; min-height: 34px; border-radius: 10px; font-weight: 900; font-size: .8rem; }
+    .result-badge.win { background: rgba(34,160,107,.20); color: #67e6ae; }
+    .result-badge.loss { background: rgba(184,58,69,.20); color: #ff929c; }
+    .result-badge.draw { background: rgba(234,179,8,.18); color: #fde68a; }
+    .empty-state { text-align: center; color: var(--muted); padding: 30px 12px; }
+
+    .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 10px 0; }
+    .switch-row input { width: 22px; height: 22px; min-height: 0; }
+    .setting-block + .setting-block { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 14px; }
+    .preset-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+
+    .bottom-nav {
+      position: fixed;
+      z-index: 30;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: min(100%, 980px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+      background: rgba(7,19,31,.95);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+    .nav-button { border: 0; border-radius: 12px; background: transparent; color: var(--muted); min-height: 52px; font-size: .72rem; font-weight: 800; cursor: pointer; }
+    .nav-button span { display: block; font-size: 1.18rem; line-height: 1.2; margin-bottom: 2px; }
+    .nav-button.active { color: var(--accent-2); background: rgba(245,138,7,.10); }
+
+    .toast {
+      position: fixed;
+      z-index: 80;
+      left: 50%;
+      bottom: calc(82px + env(safe-area-inset-bottom));
+      transform: translate(-50%, 18px);
+      width: min(calc(100% - 28px), 480px);
+      border-radius: 14px;
+      padding: 12px 15px;
+      background: #e9f3fb;
+      color: #07131f;
+      font-weight: 800;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+      box-shadow: var(--shadow);
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    body.timer-expired-flash::before {
+      content: "TIME";
+      position: fixed;
+      z-index: 120;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(184,58,69,.78);
+      color: white;
+      font-size: clamp(4rem, 24vw, 10rem);
+      font-weight: 950;
+      letter-spacing: .08em;
+      pointer-events: none;
+      animation: time-flash 1.8s ease-out forwards;
+    }
+    @keyframes time-flash { 0%,35% { opacity: 1; } 100% { opacity: 0; } }
+
+    dialog {
+      width: min(calc(100% - 24px), 620px);
+      max-height: min(90dvh, 820px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 0;
+      color: var(--text);
+      background: linear-gradient(180deg, #102a3f, #0d2233);
+      box-shadow: 0 30px 80px rgba(0,0,0,.55);
+    }
+    dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(4px); }
+    .dialog-body { padding: 18px; }
+    .dialog-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .dialog-head h2 { margin: 0; font-size: 1.15rem; }
+    .dialog-close { min-height: 38px; min-width: 38px; padding: 5px; }
+    .xp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .xp-grid button { min-height: 48px; }
+
+    .hold-button.holding { box-shadow: inset 0 -4px 0 var(--accent-2); animation: hold-fill .9s linear; }
+    @keyframes hold-fill { from { filter: brightness(.8); } to { filter: brightness(1.4); } }
+
+    .tabletop-exit {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      right: 10px;
+      top: 10px;
+      min-height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(7,19,31,.86);
+      color: white;
+      padding: 8px 12px;
+      font-weight: 850;
+    }
+
+    body.tabletop-mode { overflow: hidden; }
+    body.tabletop-mode .app-header,
+    body.tabletop-mode .bottom-nav,
+    body.tabletop-mode .setup-card,
+    body.tabletop-mode .match-summary-card,
+    body.tabletop-mode .match-actions-details { display: none !important; }
+    body.tabletop-mode .tabletop-exit { display: block; }
+    body.tabletop-mode main { padding: 8px; height: 100dvh; overflow: hidden; }
+    body.tabletop-mode #tracker { display: flex !important; flex-direction: column; height: calc(100dvh - 16px); gap: 7px; }
+    body.tabletop-mode .scoreboard { display: contents; }
+    body.tabletop-mode .player-card { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; justify-content: center; box-shadow: none; }
+    body.tabletop-mode .player-card.opponent { order: 1; transform: rotate(180deg); }
+    body.tabletop-mode.no-opponent-rotate .player-card.opponent { transform: none; }
+    body.tabletop-mode .timer-strip { order: 2; flex: 0 0 auto; margin: 0; padding: 6px 8px; }
+    body.tabletop-mode .player-card:not(.opponent) { order: 3; }
+    body.tabletop-mode .quick-actions { order: 4; flex: 0 0 auto; margin: 0; }
+    body.tabletop-mode .overtime-banner { order: 2; margin: 0; }
+    body.tabletop-mode .score-button { min-height: clamp(64px, 11dvh, 112px); }
+    body.tabletop-mode .score-value { font-size: clamp(3rem, 10dvh, 6rem); }
+    body.tabletop-mode .xp-controls { padding-bottom: 8px; }
+    body.tabletop-mode .timer-label,
+    body.tabletop-mode .timer-status { display: none; }
+    body.tabletop-mode .timer-strip { grid-template-columns: 38px auto 38px; justify-content: center; }
+    body.tabletop-mode .timer-copy { min-width: 82px; text-align: center; }
+    body.tabletop-mode .timer-toggle,
+    body.tabletop-mode .timer-reset { width: 36px; height: 36px; min-height: 36px; }
+    body.tabletop-mode .quick-label { display: none; }
+    body.tabletop-mode .quick-actions button { min-height: 42px; font-size: 1.05rem; }
+
+    @media (min-width: 720px) {
+      main { padding-left: 22px; padding-right: 22px; }
+      .scoreboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .score-button { min-height: 124px; }
+      .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .breakdown-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 560px) {
+      .field-grid.two, .field-grid.three { grid-template-columns: 1fr; }
+      .history-tools { grid-template-columns: 1fr; }
+      .quick-actions { grid-template-columns: repeat(3, 1fr); }
+      .quick-actions button:nth-child(4), .quick-actions button:nth-child(5) { grid-column: span 1; }
+      .score-controls { grid-template-columns: 66px minmax(88px, 1fr) 66px; }
+      .xp-controls { grid-template-columns: 1fr 46px 58px repeat(3, 46px); gap: 5px; }
+      .xp-heading { font-size: .62rem; }
+      .timer-strip { grid-template-columns: 42px auto 1fr 38px; gap: 7px; padding: 8px; }
+      .timer-toggle, .timer-reset { width: 38px; height: 38px; min-height: 38px; }
+      .timer-display { font-size: 1.48rem; }
+      .timer-status { font-size: .68rem; }
+    }
+
+    @media (max-height: 700px) and (orientation: portrait) {
+      body.tabletop-mode .xp-controls { padding-top: 0; padding-bottom: 5px; }
+      body.tabletop-mode .player-head { padding-top: 7px; }
+      body.tabletop-mode .score-controls { padding-top: 5px; padding-bottom: 5px; }
+      body.tabletop-mode .score-button { min-height: 58px; }
+    }
+  </style>
 </head>
 <body>
+  <div class="shell">
+    <section id="profileScreen">
+      <div class="hero">
+        <img src="RiftboundL.jpg" alt="Riftbound Tracker logo">
+        <h1>Riftbound Tracker</h1>
+        <p>Score, XP, timer, history and matchup stats.</p>
+      </div>
 
-<div class="menu">
-    <button onclick="showScreen('tracker')">Tracker</button>
-    <button onclick="showScreen('history')">History</button>
-    <button onclick="showScreen('stats')">Stats</button>
-    <button onclick="openEvents()">Events</button>
-</div>
+      <main style="padding-top:0">
+        <div class="card">
+          <h2>Choose profile</h2>
+          <div class="field-grid">
+            <label class="field">Profile
+              <select id="profileSelect"></select>
+            </label>
+            <button id="loadProfileBtn" class="primary" type="button">Open profile</button>
+          </div>
+        </div>
 
-<!-- PROFILE -->
-<div id="profile" class="screen active">
-    <h2>Select Profile</h2>
-    <select id="profileSelect"></select>
-    <button onclick="loadSelectedProfile()">Load</button>
-    <hr>
-    <h3>Create New Profile</h3>
-    <input type="text" id="newProfileName">
-    <button onclick="createProfile()">Create</button>
-</div>
+        <div class="card flat">
+          <h3>Create a profile</h3>
+          <div class="field-grid">
+            <label class="field">Name
+              <input id="newProfileName" type="text" maxlength="40" autocomplete="off" placeholder="Your name">
+            </label>
+            <button id="createProfileBtn" class="secondary" type="button">Create and open</button>
+          </div>
+        </div>
+      </main>
+    </section>
 
-<!-- TRACKER -->
-<div id="tracker" class="screen">
+    <section id="appScreen" class="hidden">
+      <header class="app-header">
+        <img class="brand-mark" src="RiftboundS.png" alt="">
+        <div class="brand-copy">
+          <div class="brand-title">Riftbound Tracker</div>
+          <div id="headerProfile" class="brand-subtitle"></div>
+        </div>
+        <button id="installBtn" class="icon-button hidden" type="button">Install</button>
+        <button id="switchProfileBtn" class="icon-button" type="button" aria-label="Switch profile">⇄</button>
+      </header>
 
-    <h3 id="currentUser"></h3>
+      <main>
+        <section id="tracker" class="screen active">
+          <details class="card flat setup-card" open>
+            <summary class="setup-summary"><span>Match setup</span><span class="muted small">tap to collapse</span></summary>
+            <div class="details-body">
+              <div class="field-grid three">
+                <label class="field">Opponent
+                  <input id="opponentInput" type="text" maxlength="60" placeholder="Opponent">
+                </label>
+                <label class="field">Event
+                  <input id="eventInput" type="text" maxlength="80" placeholder="Optional">
+                </label>
+                <label class="field">Match type
+                  <select id="matchTypeInput">
+                    <option value="casual">Casual</option>
+                    <option value="tournament">Tournament</option>
+                    <option value="testing">Testing</option>
+                  </select>
+                </label>
+                <label class="field">First player
+                  <select id="firstPlayerInput">
+                    <option value="unknown">Not selected</option>
+                    <option value="me">Me</option>
+                    <option value="opponent">Opponent</option>
+                  </select>
+                </label>
+                <label class="field">Your leader
+                  <input id="yourLeaderInput" type="text" maxlength="60" placeholder="e.g. Diana">
+                </label>
+                <label class="field">Your deck
+                  <input id="deckInput" type="text" maxlength="80" placeholder="Deck name or version">
+                </label>
+                <label class="field">Opponent leader
+                  <input id="opponentLeaderInput" type="text" maxlength="60" placeholder="Optional">
+                </label>
+                <label class="field">Opponent deck / colors
+                  <input id="opponentDeckInput" type="text" maxlength="80" placeholder="Optional">
+                </label>
+                <label class="field" style="grid-column:1/-1">Match notes
+                  <textarea id="noteInput" maxlength="1000" placeholder="Misplays, key cards, sideboard ideas, judge ruling…"></textarea>
+                </label>
+              </div>
+              <div class="button-row" style="margin-top:12px">
+                <button id="quickMatchSetupBtn" class="primary" type="button">Start quick match</button>
+              </div>
+            </div>
+          </details>
 
-    Opponent Name:
-    <input type="text" id="player2NameInput">
-    <button onclick="saveOpponent()">Save</button>
+          <div class="card flat match-summary-card">
+            <div class="match-strip">
+              <div class="match-chip"><span>Match</span><strong id="matchScore">0 – 0</strong></div>
+              <div class="match-chip"><span>Target</span><strong id="winningScoreDisplay">8</strong></div>
+              <div class="match-chip"><span>D20</span><strong id="diceResult">–</strong></div>
+            </div>
+          </div>
 
-    <br><br>
+          <div class="scoreboard" id="scoreboard">
+            <article id="playerOneCard" class="player-card">
+              <div class="player-head">
+                <div id="playerOneName" class="player-name">You</div>
+                <div id="playerOneGames" class="game-wins">Games: 0</div>
+              </div>
+              <div class="score-controls">
+                <button class="score-button minus" data-player="1" data-delta="-1" type="button" aria-label="Remove one point from your score">−1</button>
+                <div class="score-display"><span class="resource-label">Score</span><div id="p1Score" class="score-value" aria-live="polite">0</div></div>
+                <button class="score-button plus" data-player="1" data-delta="1" type="button" aria-label="Add one point to your score">+1</button>
+              </div>
+              <div class="xp-controls" aria-label="Your Riftbound XP tracker">
+                <span class="xp-heading">XP / Level</span>
+                <button class="xp-button" data-xp-player="1" data-xp-delta="-1" type="button">−1</button>
+                <div id="p1Xp" class="xp-value" data-xp-display="1" aria-live="polite" title="Tap for more options; hold to reset">0</div>
+                <button class="xp-button gain" data-xp-player="1" data-xp-delta="1" type="button">+1</button>
+                <button class="xp-button gain" data-xp-player="1" data-xp-delta="2" type="button">+2</button>
+                <button class="xp-button gain" data-xp-player="1" data-xp-delta="3" type="button">+3</button>
+              </div>
+            </article>
 
-    Winning Score:
-    <input type="number" id="winInput" min="1" value="8" style="width:60px;">
-    <button onclick="setWinningScore()">Set</button>
+            <article id="playerTwoCard" class="player-card opponent">
+              <div class="player-head">
+                <div id="playerTwoName" class="player-name">Opponent</div>
+                <div id="playerTwoGames" class="game-wins">Games: 0</div>
+              </div>
+              <div class="score-controls">
+                <button class="score-button minus" data-player="2" data-delta="-1" type="button" aria-label="Remove one point from opponent score">−1</button>
+                <div class="score-display"><span class="resource-label">Score</span><div id="p2Score" class="score-value" aria-live="polite">0</div></div>
+                <button class="score-button plus" data-player="2" data-delta="1" type="button" aria-label="Add one point to opponent score">+1</button>
+              </div>
+              <div class="xp-controls" aria-label="Opponent Riftbound XP tracker">
+                <span class="xp-heading">XP / Level</span>
+                <button class="xp-button" data-xp-player="2" data-xp-delta="-1" type="button">−1</button>
+                <div id="p2Xp" class="xp-value" data-xp-display="2" aria-live="polite" title="Tap for more options; hold to reset">0</div>
+                <button class="xp-button gain" data-xp-player="2" data-xp-delta="1" type="button">+1</button>
+                <button class="xp-button gain" data-xp-player="2" data-xp-delta="2" type="button">+2</button>
+                <button class="xp-button gain" data-xp-player="2" data-xp-delta="3" type="button">+3</button>
+              </div>
+            </article>
+          </div>
 
-    <h3>Best of 3</h3>
-    Match Score: <span id="matchScore">0 - 0</span>
+          <div class="timer-strip" aria-label="Match timer">
+            <button id="timerToggleBtn" class="timer-toggle" type="button" aria-label="Start match timer">▶</button>
+            <div class="timer-copy">
+              <span class="timer-label">Match timer</span>
+              <div id="timerDisplay" class="timer-display">50:00</div>
+            </div>
+            <div id="timerStatus" class="timer-status">Ready</div>
+            <button id="timerResetBtn" class="timer-reset" type="button" aria-label="Reset match timer">↺</button>
+          </div>
 
-    <div class="dice-box">
-        🎲 D20: <span id="diceResult">-</span>
-        <button onclick="rollDice()">Roll</button>
+          <div class="quick-actions">
+            <button id="undoBtn" class="secondary" type="button">↶ <span class="quick-label">Undo</span></button>
+            <button id="rollDiceBtn" class="secondary" type="button">🎲 <span class="quick-label">D20</span></button>
+            <button id="overtimeBtn" class="secondary" type="button">⏱ <span class="quick-label">Overtime</span></button>
+            <button id="tabletopBtn" class="secondary" type="button">↕ <span class="quick-label">Tabletop</span></button>
+            <button id="quickMatchBtn" class="secondary" type="button">⚡ <span class="quick-label">Quick match</span></button>
+          </div>
+
+          <div id="overtimeBanner" class="overtime-banner hidden">
+            <div><strong>Overtime</strong><br><span id="overtimeText" class="small"></span></div>
+            <button id="nextTurnBtn" class="primary nowrap" type="button">Next overtime turn</button>
+          </div>
+
+          <details class="match-actions-details">
+            <summary>Match actions</summary>
+            <div class="details-body">
+              <div class="button-row">
+                <button id="awardMeBtn" class="success" type="button">I won match</button>
+                <button id="awardOpponentBtn" class="danger" type="button">Opponent won</button>
+                <button id="recordDrawBtn" class="secondary" type="button">Record draw</button>
+              </div>
+              <div class="button-row" style="margin-top:9px">
+                <button id="resetGameBtn" class="secondary" type="button">Reset current game</button>
+                <button id="resetMatchBtn" class="danger hold-button" type="button">Hold to reset match</button>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section id="history" class="screen">
+          <h2 class="section-title">Match history</h2>
+          <div class="history-tools">
+            <input id="historySearch" type="search" placeholder="Search opponent, leader, deck, event or notes">
+            <select id="historyFilter" aria-label="Filter history">
+              <option value="all">All results</option>
+              <option value="win">Wins</option>
+              <option value="loss">Losses</option>
+              <option value="draw">Draws</option>
+            </select>
+          </div>
+          <div id="historyList" class="history-list"></div>
+          <div class="button-row" style="margin-top:14px">
+            <button id="exportCsvBtn" class="secondary" type="button">Export history CSV</button>
+          </div>
+        </section>
+
+        <section id="stats" class="screen">
+          <h2 class="section-title">Stats</h2>
+          <div class="stat-grid">
+            <div class="stat-card"><span>Matches</span><strong id="totalMatches">0</strong></div>
+            <div class="stat-card"><span>Wins</span><strong id="winStat">0</strong></div>
+            <div class="stat-card"><span>Losses</span><strong id="lossStat">0</strong></div>
+            <div class="stat-card"><span>Draws</span><strong id="drawStat">0</strong></div>
+            <div class="stat-card"><span>Win rate</span><strong id="winRate">0%</strong></div>
+            <div class="stat-card"><span>Games won</span><strong id="gamesWon">0</strong></div>
+            <div class="stat-card"><span>Games lost</span><strong id="gamesLost">0</strong></div>
+            <div class="stat-card"><span>Current streak</span><strong id="streakStat">–</strong></div>
+          </div>
+          <div class="breakdown-grid">
+            <div class="breakdown-card"><h3>By your leader</h3><div id="leaderBreakdown" class="breakdown-list"></div></div>
+            <div class="breakdown-card"><h3>Against leader</h3><div id="opponentLeaderBreakdown" class="breakdown-list"></div></div>
+            <div class="breakdown-card"><h3>First player</h3><div id="firstPlayerBreakdown" class="breakdown-list"></div></div>
+            <div class="breakdown-card"><h3>Match type</h3><div id="matchTypeBreakdown" class="breakdown-list"></div></div>
+            <div class="breakdown-card"><h3>By your deck</h3><div id="deckBreakdown" class="breakdown-list"></div></div>
+            <div class="breakdown-card"><h3>By event</h3><div id="eventBreakdown" class="breakdown-list"></div></div>
+            <div class="breakdown-card"><h3>Leader matchups</h3><div id="matchupBreakdown" class="breakdown-list"></div></div>
+          </div>
+        </section>
+
+        <section id="settings" class="screen">
+          <h2 class="section-title">Settings</h2>
+
+          <div class="card">
+            <h3>Match format</h3>
+            <div class="field-grid two">
+              <label class="field">Winning score
+                <input id="winInput" type="number" min="1" max="99" inputmode="numeric">
+              </label>
+              <label class="field">Match format
+                <select id="bestOfInput">
+                  <option value="1">Best of 1</option>
+                  <option value="3">Best of 3</option>
+                  <option value="5">Best of 5</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Timer</h3>
+            <label class="field">Minutes
+              <input id="timerMinutesInput" type="number" min="1" max="240" inputmode="numeric">
+            </label>
+            <div class="preset-row">
+              <button class="secondary timer-preset" data-minutes="45" type="button">45 min</button>
+              <button class="secondary timer-preset" data-minutes="50" type="button">50 min</button>
+              <button class="secondary timer-preset" data-minutes="55" type="button">55 min</button>
+            </div>
+            <label class="switch-row"><span><strong>Automatic overtime</strong><br><span class="muted small">Start overtime when the timer expires</span></span><input id="autoOvertimeInput" type="checkbox"></label>
+          </div>
+
+          <div class="card">
+            <h3>Table experience</h3>
+            <label class="switch-row"><span><strong>Haptic feedback</strong><br><span class="muted small">Vibrate for score, game and timer events</span></span><input id="hapticsInput" type="checkbox"></label>
+            <label class="switch-row"><span><strong>Sound feedback</strong><br><span class="muted small">Small tones for actions and timer warnings</span></span><input id="soundInput" type="checkbox"></label>
+            <label class="switch-row"><span><strong>Keep screen awake</strong><br><span class="muted small">While the timer or tabletop mode is active</span></span><input id="wakeLockInput" type="checkbox"></label>
+            <label class="switch-row"><span><strong>Rotate opponent panel</strong><br><span class="muted small">Face controls toward the other player in tabletop mode</span></span><input id="rotateOpponentInput" type="checkbox"></label>
+            <div id="wakeStatus" class="muted small"></div>
+          </div>
+
+          <div class="card">
+            <h3>Data & app</h3>
+            <div class="button-row">
+              <button id="openEventsBtn" class="secondary" type="button">Open Riftbound events</button>
+              <button id="exportBackupBtn" class="secondary" type="button">Export backup</button>
+              <button id="importBackupBtn" class="secondary" type="button">Import backup</button>
+              <input id="importBackupFile" class="hidden" type="file" accept="application/json,.json">
+            </div>
+            <p class="muted small" style="margin-bottom:0">Tip: swipe left anywhere on the tracker background to undo. Hold an XP number to reset it.</p>
+          </div>
+
+          <div class="card">
+            <h3>Danger zone</h3>
+            <div class="button-row">
+              <button id="resetStatsBtn" class="danger" type="button">Reset profile data</button>
+              <button id="deleteProfileBtn" class="danger" type="button">Delete profile</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <button class="nav-button active" data-screen="tracker" type="button"><span>◉</span>Tracker</button>
+        <button class="nav-button" data-screen="history" type="button"><span>≡</span>History</button>
+        <button class="nav-button" data-screen="stats" type="button"><span>↗</span>Stats</button>
+        <button class="nav-button" data-screen="settings" type="button"><span>⚙</span>Settings</button>
+      </nav>
+    </section>
+  </div>
+
+  <button id="tabletopExitBtn" class="tabletop-exit" type="button">Exit tabletop</button>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="xpDialog">
+    <div class="dialog-body">
+      <div class="dialog-head"><h2 id="xpDialogTitle">Adjust XP</h2><button class="secondary dialog-close" data-close-dialog="xpDialog" type="button">✕</button></div>
+      <div class="xp-grid">
+        <button class="secondary xp-dialog-delta" data-delta="-5" type="button">−5</button>
+        <button class="secondary xp-dialog-delta" data-delta="-3" type="button">−3</button>
+        <button class="secondary xp-dialog-delta" data-delta="-1" type="button">−1</button>
+        <button class="primary xp-dialog-delta" data-delta="1" type="button">+1</button>
+        <button class="primary xp-dialog-delta" data-delta="2" type="button">+2</button>
+        <button class="primary xp-dialog-delta" data-delta="3" type="button">+3</button>
+        <button class="primary xp-dialog-delta" data-delta="5" type="button">+5</button>
+        <button id="xpResetBtn" class="danger" type="button">Reset</button>
+      </div>
+      <div class="field-grid two" style="margin-top:12px">
+        <label class="field">Set exact XP
+          <input id="xpExactInput" type="number" min="0" max="999" inputmode="numeric">
+        </label>
+        <button id="xpSetExactBtn" class="secondary" type="button" style="align-self:end">Set value</button>
+      </div>
     </div>
+  </dialog>
 
-    <div id="p1Label"></div>
-    <div class="score-area top" onclick="addScore(1)" id="p1">0</div>
-    <button class="minus-btn" onclick="subtractScore(1)">−</button>
-
-    <br>
-
-    <div id="p2Label"></div>
-    <div class="score-area bottom" onclick="addScore(2)" id="p2">0</div>
-    <button class="minus-btn" onclick="subtractScore(2)">−</button>
-
-    <br>
-
-    <button onclick="resetGame()">Reset Game</button>
-    <button onclick="startOvertime()">Start Overtime</button>
-    <button id="nextTurnBtn" onclick="nextTurn()" style="display:none;">Next Turn</button>
-
-    <div id="overtimeInfo" class="overtime-box"></div>
-</div>
-
-<!-- HISTORY -->
-<div id="history" class="screen">
-    <h2>Match History</h2>
-    <ul id="historyList"></ul>
-    <div class="admin-container">
-        <button class="admin-btn" onclick="adminReset()">Reset Stats</button>
+  <dialog id="historyDialog">
+    <div class="dialog-body">
+      <div class="dialog-head"><h2>Edit match</h2><button class="secondary dialog-close" data-close-dialog="historyDialog" type="button">✕</button></div>
+      <input id="historyEditId" type="hidden">
+      <div class="field-grid two">
+        <label class="field">Date and time<input id="historyEditDate" type="datetime-local"></label>
+        <label class="field">Result<select id="historyEditResult"><option value="win">Win</option><option value="loss">Loss</option><option value="draw">Draw</option></select></label>
+        <label class="field">Opponent<input id="historyEditOpponent" type="text" maxlength="60"></label>
+        <label class="field">Match type<select id="historyEditMatchType"><option value="casual">Casual</option><option value="tournament">Tournament</option><option value="testing">Testing</option></select></label>
+        <label class="field">Your leader<input id="historyEditYourLeader" type="text" maxlength="60"></label>
+        <label class="field">Your deck<input id="historyEditDeck" type="text" maxlength="80"></label>
+        <label class="field">Opponent leader<input id="historyEditOpponentLeader" type="text" maxlength="60"></label>
+        <label class="field">Opponent deck / colors<input id="historyEditOpponentDeck" type="text" maxlength="80"></label>
+        <label class="field">Event<input id="historyEditEvent" type="text" maxlength="80"></label>
+        <label class="field">First player<select id="historyEditFirstPlayer"><option value="unknown">Unknown</option><option value="me">Me</option><option value="opponent">Opponent</option></select></label>
+        <label class="field">Your games<input id="historyEditScoreP1" type="number" min="0" max="99"></label>
+        <label class="field">Opponent games<input id="historyEditScoreP2" type="number" min="0" max="99"></label>
+        <label class="field" style="grid-column:1/-1">Notes<textarea id="historyEditNote" maxlength="1000"></textarea></label>
+      </div>
+      <div class="button-row" style="margin-top:14px">
+        <button id="saveHistoryBtn" class="primary" type="button">Save changes</button>
+        <button id="deleteHistoryBtn" class="danger" type="button">Delete match</button>
+      </div>
     </div>
-</div>
+  </dialog>
 
-<!-- STATS -->
-<div id="stats" class="screen">
-    <h2>Stats</h2>
-    Total Matches: <span id="totalMatches">0</span><br>
-    Wins: <span id="winStat">0</span><br>
-    Losses: <span id="lossStat">0</span><br>
-    Draws: <span id="drawStat">0</span>
-    <div class="admin-container">
-        <button class="admin-btn" onclick="adminReset()">Reset Stats</button>
-    </div>
-</div>
+  <script>
+    "use strict";
 
-<script>
+    const PROFILE_LIST_KEY = "profiles";
+    const LAST_PROFILE_KEY = "riftbound_last_profile";
+    const DATA_PREFIX = "riftbound_v2_profile_";
+    const MATCH_PREFIX = "riftbound_v2_match_";
 
-    let username=null;
-    let p1=0,p2=0,matchP1=0,matchP2=0;
-    let winningScore=8;
-    let overtime=false;
-    let overtimeTurns=3;
+    let username = null;
+    let profileData = null;
+    let match = null;
+    let undoStack = [];
+    let deferredInstallPrompt = null;
+    let toastTimer = null;
+    let timerInterval = null;
+    let activeXpPlayer = 1;
+    let wakeLock = null;
+    let audioContext = null;
 
-    let stats={};
-    let player2Name="Opponent";
+    const $ = id => document.getElementById(id);
+    const deepClone = value => JSON.parse(JSON.stringify(value));
+    const clampInt = (value, fallback, min, max) => {
+      const number = Number.parseInt(value, 10);
+      if (!Number.isFinite(number)) return fallback;
+      return Math.min(max, Math.max(min, number));
+    };
+    const readBool = (value, fallback) => typeof value === "boolean" ? value : fallback;
+    const escapeHtml = value => String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
 
-    function fixStats(obj){
-        return {
-            totalMatches: obj.totalMatches||0,
-            wins: obj.wins||0,
-            losses: obj.losses||0,
-            draws: obj.draws||0,
-            history: obj.history||[]
-        };
+    function uid() {
+      return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
     }
 
-    function openEvents(){
-        window.open("https://locator.riftbound.uvsgames.com/my-events","_blank");
-    }
-
-    function rollDice(){
-        let roll=Math.floor(Math.random()*20)+1;
-        document.getElementById("diceResult").innerText=roll;
-    }
-
-    function createProfile(){
-        let name=document.getElementById("newProfileName").value.trim();
-        if(!name)return;
-        let profiles=JSON.parse(localStorage.getItem("profiles"))||[];
-        if(!profiles.includes(name)){
-            profiles.push(name);
-            localStorage.setItem("profiles",JSON.stringify(profiles));
+    function defaultProfileData() {
+      return {
+        version: 4,
+        stats: { totalMatches: 0, wins: 0, losses: 0, draws: 0, gamesWon: 0, gamesLost: 0 },
+        history: [],
+        settings: {
+          winningScore: 8,
+          bestOf: 3,
+          timerMinutes: 50,
+          autoOvertime: true,
+          wakeLock: true,
+          haptics: true,
+          sound: false,
+          rotateOpponent: true
         }
-        refreshProfileDropdown();
-        document.getElementById("newProfileName").value="";
+      };
     }
 
-    function refreshProfileDropdown(){
-        let select=document.getElementById("profileSelect");
-        select.innerHTML="";
-        let profiles=JSON.parse(localStorage.getItem("profiles"))||[];
-        profiles.forEach(p=>{
-            let opt=document.createElement("option");
-            opt.value=p;
-            opt.text=p;
-            select.appendChild(opt);
-        });
+    function defaultMatch(timerMinutes = 50) {
+      const seconds = clampInt(timerMinutes, 50, 1, 240) * 60;
+      return {
+        p1: 0, p2: 0, xp1: 0, xp2: 0,
+        matchP1: 0, matchP2: 0,
+        overtime: false, overtimeTurns: 3,
+        opponent: "Opponent", deck: "", event: "", dice: null,
+        yourLeader: "", opponentLeader: "", opponentDeck: "", matchType: "casual", note: "",
+        matchFirstPlayer: null,
+        timerTotal: seconds, timerRemaining: seconds, timerRunning: false, timerEndAt: null,
+        timerLastWarning: 999999, timerExpired: false,
+        tabletop: false,
+        startedAt: new Date().toISOString()
+      };
     }
 
-    function loadSelectedProfile(){
-        username=document.getElementById("profileSelect").value;
-        if(!username)return;
-
-        document.getElementById("currentUser").innerText="Profile: "+username;
-
-        let savedStats=JSON.parse(localStorage.getItem("stats_"+username))||{};
-        stats=fixStats(savedStats);
-
-        winningScore=parseInt(localStorage.getItem("win_"+username))||8;
-        document.getElementById("winInput").value=winningScore;
-
-        let savedOpponent=localStorage.getItem("opponent_"+username);
-        if(savedOpponent)player2Name=savedOpponent;
-
-        document.getElementById("player2NameInput").value=player2Name;
-
-        updateLabels();
-        showScreen("tracker");
-        updateStats();
-        updateHistory();
-    }
-
-    function save(){
-        localStorage.setItem("stats_"+username,JSON.stringify(stats));
-    }
-
-    function saveOpponent(){
-        player2Name=document.getElementById("player2NameInput").value||"Opponent";
-        localStorage.setItem("opponent_"+username,player2Name);
-        updateLabels();
-    }
-
-    function updateLabels(){
-        document.getElementById("p1Label").innerText=username;
-        document.getElementById("p2Label").innerText=player2Name;
-    }
-
-    function setWinningScore(){
-        winningScore=parseInt(document.getElementById("winInput").value);
-        localStorage.setItem("win_"+username,winningScore);
-    }
-
-    function showScreen(name){
-        document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-        document.getElementById(name).classList.add("active");
-        updateStats();
-        updateHistory();
-    }
-
-    function updateUI(){
-        document.getElementById("p1").innerText=p1;
-        document.getElementById("p2").innerText=p2;
-        document.getElementById("matchScore").innerText=matchP1+" - "+matchP2;
-
-        if(overtime){
-            document.getElementById("overtimeInfo").innerText="Overtime Turns Remaining: "+overtimeTurns;
-            document.getElementById("nextTurnBtn").style.display="inline-block";
-        }else{
-            document.getElementById("overtimeInfo").innerText="";
-            document.getElementById("nextTurnBtn").style.display="none";
+    function normalizeProfileData(value) {
+      const defaults = defaultProfileData();
+      const data = value && typeof value === "object" ? value : {};
+      const rawStats = data.stats && typeof data.stats === "object" ? data.stats : {};
+      const rawSettings = data.settings && typeof data.settings === "object" ? data.settings : {};
+      return {
+        version: 4,
+        stats: {
+          totalMatches: clampInt(rawStats.totalMatches, 0, 0, 100000000),
+          wins: clampInt(rawStats.wins, 0, 0, 100000000),
+          losses: clampInt(rawStats.losses, 0, 0, 100000000),
+          draws: clampInt(rawStats.draws, 0, 0, 100000000),
+          gamesWon: clampInt(rawStats.gamesWon, 0, 0, 100000000),
+          gamesLost: clampInt(rawStats.gamesLost, 0, 0, 100000000)
+        },
+        history: Array.isArray(data.history) ? data.history : [],
+        settings: {
+          winningScore: clampInt(rawSettings.winningScore, defaults.settings.winningScore, 1, 99),
+          bestOf: [1,3,5].includes(Number(rawSettings.bestOf)) ? Number(rawSettings.bestOf) : defaults.settings.bestOf,
+          timerMinutes: clampInt(rawSettings.timerMinutes, defaults.settings.timerMinutes, 1, 240),
+          autoOvertime: readBool(rawSettings.autoOvertime, defaults.settings.autoOvertime),
+          wakeLock: readBool(rawSettings.wakeLock, defaults.settings.wakeLock),
+          haptics: readBool(rawSettings.haptics, defaults.settings.haptics),
+          sound: readBool(rawSettings.sound, defaults.settings.sound),
+          rotateOpponent: readBool(rawSettings.rotateOpponent, defaults.settings.rotateOpponent)
         }
+      };
     }
 
-    function startOvertime(){
-        overtime=true;
-        overtimeTurns=3;
-        updateUI();
+    function normalizeMatch(value, settings = defaultProfileData().settings) {
+      const defaults = defaultMatch(settings.timerMinutes);
+      const data = value && typeof value === "object" ? value : {};
+      const timerTotal = clampInt(data.timerTotal, defaults.timerTotal, 60, 14400);
+      return {
+        p1: clampInt(data.p1, 0, 0, 999), p2: clampInt(data.p2, 0, 0, 999),
+        xp1: clampInt(data.xp1, 0, 0, 999), xp2: clampInt(data.xp2, 0, 0, 999),
+        matchP1: clampInt(data.matchP1, 0, 0, 99), matchP2: clampInt(data.matchP2, 0, 0, 99),
+        overtime: Boolean(data.overtime), overtimeTurns: clampInt(data.overtimeTurns, 3, 0, 3),
+        opponent: typeof data.opponent === "string" && data.opponent.trim() ? data.opponent.slice(0,60) : defaults.opponent,
+        deck: typeof data.deck === "string" ? data.deck.slice(0,80) : "",
+        event: typeof data.event === "string" ? data.event.slice(0,80) : "",
+        dice: Number.isInteger(data.dice) && data.dice >= 1 && data.dice <= 20 ? data.dice : null,
+        yourLeader: typeof data.yourLeader === "string" ? data.yourLeader.slice(0,60) : "",
+        opponentLeader: typeof data.opponentLeader === "string" ? data.opponentLeader.slice(0,60) : "",
+        opponentDeck: typeof data.opponentDeck === "string" ? data.opponentDeck.slice(0,80) : "",
+        matchType: ["casual","tournament","testing"].includes(data.matchType) ? data.matchType : "casual",
+        note: typeof data.note === "string" ? data.note.slice(0,1000) : "",
+        matchFirstPlayer: [1,2].includes(Number(data.matchFirstPlayer)) ? Number(data.matchFirstPlayer) : null,
+        timerTotal,
+        timerRemaining: clampInt(data.timerRemaining, timerTotal, 0, timerTotal),
+        timerRunning: Boolean(data.timerRunning),
+        timerEndAt: Number.isFinite(Number(data.timerEndAt)) ? Number(data.timerEndAt) : null,
+        timerLastWarning: clampInt(data.timerLastWarning, 999999, 0, 999999),
+        timerExpired: Boolean(data.timerExpired),
+        tabletop: Boolean(data.tabletop),
+        startedAt: typeof data.startedAt === "string" ? data.startedAt : new Date().toISOString()
+      };
     }
 
-    function nextTurn(){
-        if(!overtime)return;
-        overtimeTurns--;
-        if(overtimeTurns<=0)evaluateOvertime();
-        updateUI();
+    function loadProfiles() {
+      try {
+        const profiles = JSON.parse(localStorage.getItem(PROFILE_LIST_KEY));
+        return Array.isArray(profiles) ? profiles.filter(name => typeof name === "string" && name.trim()) : [];
+      } catch { return []; }
     }
 
-    function evaluateOvertime(){
-        let diff=Math.abs(p1-p2);
+    function saveProfiles(profiles) {
+      localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify([...new Set(profiles)]));
+    }
 
-        if(diff>=2){
-            if(p1>p2)matchP1++;
-            else matchP2++;
-        }else{
-            stats.totalMatches++;
-            stats.draws++;
-            stats.history.unshift(username+" drew ("+p1+"-"+p2+") vs "+player2Name);
-            save();
-            resetGame();
-            return;
+    function migrateOldProfile(name) {
+      const migrated = defaultProfileData();
+      try {
+        const oldStats = JSON.parse(localStorage.getItem(`stats_${name}`) || "{}");
+        migrated.stats.totalMatches = clampInt(oldStats.totalMatches, 0, 0, 100000000);
+        migrated.stats.wins = clampInt(oldStats.wins, 0, 0, 100000000);
+        migrated.stats.losses = clampInt(oldStats.losses, 0, 0, 100000000);
+        migrated.stats.draws = clampInt(oldStats.draws, 0, 0, 100000000);
+        migrated.history = Array.isArray(oldStats.history)
+          ? oldStats.history.map(text => ({ id: uid(), type: "legacy", text: String(text), date: null }))
+          : [];
+      } catch {}
+      migrated.settings.winningScore = clampInt(localStorage.getItem(`win_${name}`), 8, 1, 99);
+      return migrated;
+    }
+
+    function getProfileData(name) {
+      const raw = localStorage.getItem(DATA_PREFIX + name);
+      if (raw) {
+        try { return normalizeProfileData(JSON.parse(raw)); }
+        catch { return defaultProfileData(); }
+      }
+      const migrated = migrateOldProfile(name);
+      localStorage.setItem(DATA_PREFIX + name, JSON.stringify(migrated));
+      return migrated;
+    }
+
+    function getMatchData(name, settings) {
+      const raw = localStorage.getItem(MATCH_PREFIX + name);
+      if (raw) {
+        try { return normalizeMatch(JSON.parse(raw), settings); }
+        catch { return defaultMatch(settings.timerMinutes); }
+      }
+      const fresh = defaultMatch(settings.timerMinutes);
+      const oldOpponent = localStorage.getItem(`opponent_${name}`);
+      if (oldOpponent && oldOpponent.trim()) fresh.opponent = oldOpponent.trim().slice(0,60);
+      return fresh;
+    }
+
+    function saveAll() {
+      if (!username || !profileData || !match) return;
+      localStorage.setItem(DATA_PREFIX + username, JSON.stringify(profileData));
+      localStorage.setItem(MATCH_PREFIX + username, JSON.stringify(match));
+    }
+
+    function refreshProfileDropdown(selectedName = "") {
+      const select = $("profileSelect");
+      const profiles = loadProfiles();
+      select.innerHTML = "";
+      if (!profiles.length) {
+        const option = document.createElement("option");
+        option.value = ""; option.textContent = "No profiles yet";
+        select.appendChild(option); $("loadProfileBtn").disabled = true; return;
+      }
+      profiles.forEach(name => {
+        const option = document.createElement("option");
+        option.value = name; option.textContent = name; select.appendChild(option);
+      });
+      const preferred = selectedName || localStorage.getItem(LAST_PROFILE_KEY);
+      if (preferred && profiles.includes(preferred)) select.value = preferred;
+      $("loadProfileBtn").disabled = false;
+    }
+
+    function createProfile() {
+      const input = $("newProfileName");
+      const name = input.value.trim();
+      if (!name) return showToast("Enter a profile name.");
+      const profiles = loadProfiles();
+      if (!profiles.includes(name)) { profiles.push(name); saveProfiles(profiles); }
+      input.value = ""; refreshProfileDropdown(name); openProfile(name);
+    }
+
+    function openSelectedProfile() { const name = $("profileSelect").value; if (name) openProfile(name); }
+
+    function openProfile(name) {
+      username = name;
+      profileData = getProfileData(name);
+      match = getMatchData(name, profileData.settings);
+      if (match.timerRunning && match.timerEndAt) updateTimerFromClock(false);
+      undoStack = [];
+      localStorage.setItem(LAST_PROFILE_KEY, name);
+      $("profileScreen").classList.add("hidden");
+      $("appScreen").classList.remove("hidden");
+      $("headerProfile").textContent = name;
+      $("playerOneName").textContent = name;
+      loadSettingsIntoInputs();
+      updateUI();
+      showScreen("tracker");
+      startTimerLoop();
+      syncWakeLock();
+    }
+
+    async function switchProfile() {
+      saveInputsToMatch(); saveAll();
+      if (match?.tabletop) await setTabletop(false);
+      username = null; profileData = null; match = null; undoStack = [];
+      $("appScreen").classList.add("hidden");
+      $("profileScreen").classList.remove("hidden");
+      refreshProfileDropdown();
+      stopTimerLoop();
+      syncWakeLock();
+    }
+
+    function loadSettingsIntoInputs() {
+      $("opponentInput").value = match.opponent;
+      $("deckInput").value = match.deck;
+      $("eventInput").value = match.event;
+      $("yourLeaderInput").value = match.yourLeader;
+      $("opponentLeaderInput").value = match.opponentLeader;
+      $("opponentDeckInput").value = match.opponentDeck;
+      $("matchTypeInput").value = match.matchType;
+      $("firstPlayerInput").value = match.matchFirstPlayer === 1 ? "me" : match.matchFirstPlayer === 2 ? "opponent" : "unknown";
+      $("noteInput").value = match.note;
+      $("winInput").value = profileData.settings.winningScore;
+      $("bestOfInput").value = profileData.settings.bestOf;
+      $("timerMinutesInput").value = profileData.settings.timerMinutes;
+      $("autoOvertimeInput").checked = profileData.settings.autoOvertime;
+      $("wakeLockInput").checked = profileData.settings.wakeLock;
+      $("hapticsInput").checked = profileData.settings.haptics;
+      $("soundInput").checked = profileData.settings.sound;
+      $("rotateOpponentInput").checked = profileData.settings.rotateOpponent;
+    }
+
+    function saveInputsToMatch() {
+      if (!match) return;
+      match.opponent = $("opponentInput").value.trim() || "Opponent";
+      match.deck = $("deckInput").value.trim();
+      match.event = $("eventInput").value.trim();
+      match.yourLeader = $("yourLeaderInput").value.trim();
+      match.opponentLeader = $("opponentLeaderInput").value.trim();
+      match.opponentDeck = $("opponentDeckInput").value.trim();
+      match.matchType = $("matchTypeInput").value;
+      match.matchFirstPlayer = $("firstPlayerInput").value === "me" ? 1 : $("firstPlayerInput").value === "opponent" ? 2 : null;
+      match.note = $("noteInput").value.trim();
+    }
+
+    function saveSettingsFromInputs() {
+      if (!profileData) return;
+      const oldTimerMinutes = profileData.settings.timerMinutes;
+      profileData.settings.winningScore = clampInt($("winInput").value, 8, 1, 99);
+      profileData.settings.bestOf = [1,3,5].includes(Number($("bestOfInput").value)) ? Number($("bestOfInput").value) : 3;
+      profileData.settings.timerMinutes = clampInt($("timerMinutesInput").value, 50, 1, 240);
+      profileData.settings.autoOvertime = $("autoOvertimeInput").checked;
+      profileData.settings.wakeLock = $("wakeLockInput").checked;
+      profileData.settings.haptics = $("hapticsInput").checked;
+      profileData.settings.sound = $("soundInput").checked;
+      profileData.settings.rotateOpponent = $("rotateOpponentInput").checked;
+      if (profileData.settings.timerMinutes !== oldTimerMinutes && !match.timerRunning) {
+        match.timerTotal = profileData.settings.timerMinutes * 60;
+        match.timerRemaining = match.timerTotal;
+        match.timerExpired = false;
+        match.timerLastWarning = 999999;
+      }
+      saveAll(); updateUI(); syncWakeLock();
+    }
+
+    function winsNeeded() { return Math.ceil(profileData.settings.bestOf / 2); }
+
+    function pushUndo() {
+      undoStack.push({ profileData: deepClone(profileData), match: deepClone(match) });
+      if (undoStack.length > 30) undoStack.shift();
+      updateUndoButton();
+    }
+
+    function undoLast() {
+      const previous = undoStack.pop();
+      if (!previous) return;
+      profileData = normalizeProfileData(previous.profileData);
+      match = normalizeMatch(previous.match, profileData.settings);
+      saveAll(); loadSettingsIntoInputs(); updateUI(); syncWakeLock();
+      showToast("Last action undone.");
+    }
+
+    function updateUndoButton() { $("undoBtn").disabled = undoStack.length === 0; }
+
+    function animateDelta(elementId, delta) {
+      const target = $(elementId);
+      if (!target) return;
+      const pop = document.createElement("span");
+      pop.className = `delta-pop${delta < 0 ? " negative" : ""}`;
+      pop.textContent = `${delta > 0 ? "+" : ""}${delta}`;
+      target.appendChild(pop);
+      setTimeout(() => pop.remove(), 700);
+    }
+
+    function ensureAudio() {
+      if (!audioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioContext = new AudioCtx();
+      }
+      if (audioContext?.state === "suspended") audioContext.resume().catch(() => {});
+    }
+
+    function tone(frequency = 520, duration = .05, volume = .04) {
+      if (!profileData?.settings.sound) return;
+      try {
+        ensureAudio();
+        if (!audioContext) return;
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.frequency.value = frequency;
+        gain.gain.value = volume;
+        oscillator.connect(gain); gain.connect(audioContext.destination);
+        oscillator.start(); oscillator.stop(audioContext.currentTime + duration);
+      } catch {}
+    }
+
+    function vibrate(pattern) {
+      if (profileData?.settings.haptics && navigator.vibrate) navigator.vibrate(pattern);
+    }
+
+    function feedback(kind) {
+      if (kind === "tap") { vibrate(14); tone(430,.025,.025); }
+      if (kind === "game") { vibrate([60,40,100]); tone(720,.12,.05); }
+      if (kind === "timer") { vibrate([120,80,120]); tone(880,.18,.06); }
+      if (kind === "warning") { vibrate([45,35,45]); tone(660,.10,.04); }
+    }
+
+    function changeScore(player, delta) {
+      if (!match) return;
+      const key = player === 1 ? "p1" : "p2";
+      if (delta < 0 && match[key] <= 0) return;
+      pushUndo(); match[key] = Math.max(0, match[key] + delta);
+      animateDelta(player === 1 ? "p1Score" : "p2Score", delta); feedback("tap");
+      if (delta > 0 && !match.overtime && match[key] >= profileData.settings.winningScore) awardGame(player, true);
+      saveAll(); updateUI();
+    }
+
+    function changeXp(player, delta) {
+      if (!match) return;
+      const key = player === 1 ? "xp1" : "xp2";
+      if (delta < 0 && match[key] <= 0) return;
+      pushUndo();
+      const old = match[key];
+      match[key] = Math.max(0, Math.min(999, match[key] + delta));
+      const applied = match[key] - old;
+      if (!applied) { undoStack.pop(); updateUndoButton(); return; }
+      animateDelta(player === 1 ? "p1Xp" : "p2Xp", applied); feedback("tap");
+      saveAll(); updateUI();
+    }
+
+    function setXp(player, value) {
+      const key = player === 1 ? "xp1" : "xp2";
+      const next = clampInt(value, match[key], 0, 999);
+      if (next === match[key]) return;
+      pushUndo(); const delta = next - match[key]; match[key] = next;
+      animateDelta(player === 1 ? "p1Xp" : "p2Xp", delta); feedback("tap");
+      saveAll(); updateUI();
+    }
+
+    function openXpDialog(player) {
+      activeXpPlayer = player;
+      const value = player === 1 ? match.xp1 : match.xp2;
+      $("xpDialogTitle").textContent = `${player === 1 ? username : match.opponent} XP / Level: ${value}`;
+      $("xpExactInput").value = value;
+      $("xpDialog").showModal();
+    }
+
+    function awardGame(player, automatic = false, endMatchAfterGame = false) {
+      if (!automatic) pushUndo();
+      if (player === 1) match.matchP1 += 1; else match.matchP2 += 1;
+      const gameScore = `${match.p1}–${match.p2}`;
+      match.p1 = 0; match.p2 = 0; match.xp1 = 0; match.xp2 = 0;
+      match.overtime = false; match.overtimeTurns = 3;
+      feedback("game");
+      showToast(`${player === 1 ? username : match.opponent} won the game ${gameScore}.`);
+      if (endMatchAfterGame) {
+        const result = match.matchP1 > match.matchP2 ? "win" : match.matchP2 > match.matchP1 ? "loss" : "draw";
+        finalizeMatch(result, true);
+      } else if (match.matchP1 >= winsNeeded() || match.matchP2 >= winsNeeded()) {
+        finalizeMatch(match.matchP1 > match.matchP2 ? "win" : "loss", true);
+      }
+    }
+
+    function applyMatchToStats(item, factor) {
+      if (!item || item.type !== "match") return;
+      const stats = profileData.stats;
+      stats.totalMatches = Math.max(0, stats.totalMatches + factor);
+      if (item.result === "win") stats.wins = Math.max(0, stats.wins + factor);
+      if (item.result === "loss") stats.losses = Math.max(0, stats.losses + factor);
+      if (item.result === "draw") stats.draws = Math.max(0, stats.draws + factor);
+      stats.gamesWon = Math.max(0, stats.gamesWon + factor * clampInt(item.scoreP1,0,0,99));
+      stats.gamesLost = Math.max(0, stats.gamesLost + factor * clampInt(item.scoreP2,0,0,99));
+    }
+
+    function finalizeMatch(result, pushed = false) {
+      if (!pushed) pushUndo();
+      saveInputsToMatch();
+      const item = {
+        id: uid(), type: "match", date: new Date().toISOString(), startedAt: match.startedAt,
+        opponent: match.opponent || "Opponent", deck: match.deck || "", event: match.event || "",
+        yourLeader: match.yourLeader || "", opponentLeader: match.opponentLeader || "", opponentDeck: match.opponentDeck || "",
+        matchType: match.matchType || "casual", note: match.note || "",
+        firstPlayer: match.matchFirstPlayer === 1 ? "me" : match.matchFirstPlayer === 2 ? "opponent" : "unknown",
+        result, scoreP1: match.matchP1, scoreP2: match.matchP2
+      };
+      profileData.history.unshift(item); applyMatchToStats(item, 1);
+
+      const keep = { deck: match.deck, event: match.event, yourLeader: match.yourLeader, matchType: match.matchType };
+      const tabletop = match.tabletop;
+      match = defaultMatch(profileData.settings.timerMinutes);
+      Object.assign(match, keep, { tabletop });
+      saveAll(); loadSettingsIntoInputs(); updateUI();
+      feedback("game"); showToast(`Match recorded: ${result.toUpperCase()}.`);
+    }
+
+    function startOvertime(push = true) {
+      if (match.overtime) return;
+      if (push) pushUndo();
+      match.overtime = true; match.overtimeTurns = 3;
+      saveAll(); updateUI();
+    }
+
+    function nextOvertimeTurn() {
+      if (!match.overtime) return;
+      pushUndo(); match.overtimeTurns -= 1;
+      if (match.overtimeTurns <= 0) {
+        const difference = Math.abs(match.p1 - match.p2);
+        if (difference >= 2) awardGame(match.p1 > match.p2 ? 1 : 2, true, true);
+        else {
+          const result = match.matchP1 > match.matchP2 ? "win" : match.matchP2 > match.matchP1 ? "loss" : "draw";
+          finalizeMatch(result, true);
         }
-
-        p1=0;p2=0;overtime=false;
-
-        if(matchP1==2||matchP2==2)finalizeMatch();
-
-        updateStats();
-        updateHistory();
+      }
+      saveAll(); updateUI();
     }
 
-    function checkNormalWin(){
-        if(p1>=winningScore||p2>=winningScore){
-            if(p1>p2)matchP1++;
-            else matchP2++;
-            p1=0;p2=0;
-            if(matchP1==2||matchP2==2)finalizeMatch();
+    function rollDice() {
+      pushUndo(); match.dice = Math.floor(Math.random() * 20) + 1;
+      feedback("tap"); saveAll(); updateUI();
+    }
+
+    function forceMatchResult(result) {
+      pushUndo();
+      const needed = winsNeeded();
+      if (result === "win" && match.matchP1 <= match.matchP2) match.matchP1 = needed;
+      if (result === "loss" && match.matchP2 <= match.matchP1) match.matchP2 = needed;
+      finalizeMatch(result, true);
+    }
+
+    function resetCurrentGame() {
+      if (!confirm("Reset the current game score and XP? The match game score will stay.")) return;
+      pushUndo();
+      match.p1 = 0; match.p2 = 0; match.xp1 = 0; match.xp2 = 0;
+      match.overtime = false; match.overtimeTurns = 3;
+      saveAll(); updateUI();
+    }
+
+    function resetEntireMatch() {
+      pushUndo();
+      const keep = { opponent: match.opponent, deck: match.deck, event: match.event, yourLeader: match.yourLeader, opponentLeader: match.opponentLeader, opponentDeck: match.opponentDeck, matchType: match.matchType, tabletop: match.tabletop };
+      match = defaultMatch(profileData.settings.timerMinutes); Object.assign(match, keep);
+      saveAll(); loadSettingsIntoInputs(); updateUI(); showToast("Current match reset.");
+    }
+
+    function hasMatchProgress() {
+      return match.p1 || match.p2 || match.xp1 || match.xp2 || match.matchP1 || match.matchP2 || match.timerRunning || match.overtime;
+    }
+
+    function startQuickMatch() {
+      if (hasMatchProgress() && !confirm("Start a new quick match and discard the current unrecorded match?")) return;
+      const keep = { deck: match.deck, event: match.event, yourLeader: match.yourLeader, matchType: match.matchType, tabletop: match.tabletop };
+      match = defaultMatch(profileData.settings.timerMinutes); Object.assign(match, keep);
+      match.opponent = "Opponent";
+      saveAll(); loadSettingsIntoInputs(); updateUI(); showScreen("tracker");
+      $("opponentInput").focus(); showToast("Quick match ready. Your deck and event were kept.");
+    }
+
+    function formatTimer(seconds) {
+      const safe = Math.max(0, Math.floor(seconds));
+      const hours = Math.floor(safe / 3600);
+      const minutes = Math.floor((safe % 3600) / 60);
+      const secs = safe % 60;
+      if (hours) return `${hours}:${String(minutes).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
+      return `${minutes}:${String(secs).padStart(2,"0")}`;
+    }
+
+    function updateTimerFromClock(allowExpire = true) {
+      if (!match?.timerRunning || !match.timerEndAt) return;
+      match.timerRemaining = Math.max(0, Math.ceil((match.timerEndAt - Date.now()) / 1000));
+      [600,300,60].forEach(threshold => {
+        if (match.timerRemaining <= threshold && match.timerLastWarning > threshold) {
+          match.timerLastWarning = threshold;
+          feedback("warning");
+          showToast(threshold >= 60 ? `${threshold / 60} minute${threshold === 60 ? "" : "s"} remaining.` : `${threshold} seconds remaining.`);
         }
+      });
+      if (match.timerRemaining <= 0 && !match.timerExpired && allowExpire) {
+        match.timerRunning = false; match.timerExpired = true; match.timerEndAt = null;
+        feedback("timer"); showToast("Time expired.");
+        document.body.classList.add("timer-expired-flash");
+        setTimeout(() => document.body.classList.remove("timer-expired-flash"), 1900);
+        if (profileData.settings.autoOvertime && !match.overtime) startOvertime(false);
+        syncWakeLock();
+      }
     }
 
-    function finalizeMatch(){
-        stats.totalMatches++;
-        if(matchP1==2){
-            stats.wins++;
-            stats.history.unshift(username+" won "+matchP1+"-"+matchP2+" vs "+player2Name);
-        }else{
-            stats.losses++;
-            stats.history.unshift(username+" lost "+matchP1+"-"+matchP2+" vs "+player2Name);
+    function updateTimerUI() {
+      if (!match) return;
+      const display = $("timerDisplay");
+      display.textContent = formatTimer(match.timerRemaining);
+      display.classList.toggle("warning", match.timerRemaining <= 300 && match.timerRemaining > 60);
+      display.classList.toggle("urgent", match.timerRemaining <= 60);
+      $("timerToggleBtn").textContent = match.timerRunning ? "Ⅱ" : "▶";
+      $("timerToggleBtn").setAttribute("aria-label", match.timerRunning ? "Pause match timer" : match.timerRemaining === 0 ? "Restart match timer" : "Start match timer");
+      $("timerStatus").textContent = match.timerRunning ? "Running" : match.timerExpired ? "Time expired" : match.timerRemaining < match.timerTotal ? "Paused" : "Ready";
+    }
+
+    function startTimerLoop() {
+      stopTimerLoop();
+      timerInterval = setInterval(() => {
+        if (!match) return;
+        if (match.timerRunning) { updateTimerFromClock(true); saveAll(); }
+        updateTimerUI();
+      }, 250);
+    }
+
+    function stopTimerLoop() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
+
+    function toggleTimer() {
+      ensureAudio();
+      if (match.timerRunning) {
+        updateTimerFromClock(false); match.timerRunning = false; match.timerEndAt = null;
+        showToast("Timer paused.");
+      } else {
+        if (match.timerRemaining <= 0) {
+          match.timerRemaining = match.timerTotal; match.timerExpired = false; match.timerLastWarning = 999999;
         }
-        save();
-        matchP1=0;matchP2=0;
+        match.timerRunning = true; match.timerEndAt = Date.now() + match.timerRemaining * 1000;
+        showToast("Timer started.");
+      }
+      saveAll(); updateTimerUI(); syncWakeLock();
     }
 
-    function resetGame(){
-        p1=0;p2=0;matchP1=0;matchP2=0;overtime=false;overtimeTurns=3;
-        updateUI();
+    function resetTimer() {
+      match.timerRunning = false; match.timerEndAt = null;
+      match.timerTotal = profileData.settings.timerMinutes * 60;
+      match.timerRemaining = match.timerTotal; match.timerExpired = false; match.timerLastWarning = 999999;
+      saveAll(); updateTimerUI(); syncWakeLock(); showToast("Timer reset.");
     }
 
-    function updateStats(){
-        document.getElementById("totalMatches").innerText=stats.totalMatches;
-        document.getElementById("winStat").innerText=stats.wins;
-        document.getElementById("lossStat").innerText=stats.losses;
-        document.getElementById("drawStat").innerText=stats.draws;
+    async function syncWakeLock() {
+      const shouldHold = Boolean(profileData?.settings.wakeLock && match && (match.timerRunning || match.tabletop));
+      if (shouldHold && document.visibilityState === "visible" && "wakeLock" in navigator && !wakeLock) {
+        try {
+          wakeLock = await navigator.wakeLock.request("screen");
+          wakeLock.addEventListener("release", () => { wakeLock = null; updateWakeStatus(); });
+        } catch {}
+      } else if (!shouldHold && wakeLock) {
+        try { await wakeLock.release(); } catch {}
+        wakeLock = null;
+      }
+      updateWakeStatus();
     }
 
-    function updateHistory(){
-        let list=document.getElementById("historyList");
-        list.innerHTML="";
-        stats.history.forEach(h=>{
-            let li=document.createElement("li");
-            li.innerText=h;
-            list.appendChild(li);
-        });
+    function updateWakeStatus() {
+      if (!$("wakeStatus")) return;
+      if (!("wakeLock" in navigator)) $("wakeStatus").textContent = "Screen wake lock is not supported by this browser.";
+      else if (wakeLock) $("wakeStatus").textContent = "Screen is being kept awake.";
+      else $("wakeStatus").textContent = "Wake lock activates with the timer or tabletop mode.";
     }
 
-    function adminReset(){
-        let confirmReset=confirm("Are you sure you want to reset ALL stats?");
-        if(!confirmReset)return;
-        stats={totalMatches:0,wins:0,losses:0,draws:0,history:[]};
-        save();
-        updateStats();
-        updateHistory();
-        alert("Stats reset.");
+    async function setTabletop(enabled) {
+      match.tabletop = enabled;
+      document.body.classList.toggle("tabletop-mode", enabled);
+      document.body.classList.toggle("no-opponent-rotate", !profileData.settings.rotateOpponent);
+      if (enabled && document.documentElement.requestFullscreen) {
+        try { await document.documentElement.requestFullscreen(); } catch {}
+      }
+      if (!enabled && document.fullscreenElement) {
+        try { await document.exitFullscreen(); } catch {}
+      }
+      saveAll(); updateUI(); syncWakeLock();
     }
 
-    function addScore(player){
-        if(player==1)p1++;
-        if(player==2)p2++;
-        if(!overtime)checkNormalWin();
-        updateUI();
+    function toggleTabletop() { setTabletop(!match.tabletop); }
+
+    function calculateStreak() {
+      const matches = profileData.history.filter(item => item && item.type === "match");
+      if (!matches.length) return "–";
+      const first = matches[0].result;
+      if (!first || first === "draw") return "D1";
+      let count = 0;
+      for (const item of matches) { if (item.result !== first) break; count += 1; }
+      return `${first === "win" ? "W" : "L"}${count}`;
     }
 
-    function subtractScore(player){
-        if(player==1&&p1>0)p1--;
-        if(player==2&&p2>0)p2--;
-        updateUI();
+    function groupedStats(fieldOrGetter, fallback = "Unknown") {
+      const groups = new Map();
+      profileData.history.filter(item => item?.type === "match").forEach(item => {
+        const rawName = typeof fieldOrGetter === "function" ? fieldOrGetter(item) : item[fieldOrGetter];
+        const key = String(rawName || fallback).trim() || fallback;
+        const group = groups.get(key) || { name:key, matches:0, wins:0, losses:0, draws:0 };
+        group.matches += 1;
+        if (item.result === "win") group.wins += 1;
+        if (item.result === "loss") group.losses += 1;
+        if (item.result === "draw") group.draws += 1;
+        groups.set(key, group);
+      });
+      return [...groups.values()].sort((a,b) => b.matches - a.matches || b.wins - a.wins).slice(0,8);
     }
 
-    refreshProfileDropdown();
-    updateUI();
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register('sw.js');
-        });
+    function renderBreakdown(id, groups) {
+      const target = $(id);
+      if (!groups.length) { target.innerHTML = '<div class="muted small">No recorded data yet.</div>'; return; }
+      target.innerHTML = groups.map(group => {
+        const decisive = group.wins + group.losses;
+        const rate = decisive ? Math.round(group.wins / decisive * 100) : 0;
+        const label = group.name === "me" ? "You went first" : group.name === "opponent" ? "Opponent went first" : group.name;
+        return `<div class="breakdown-row"><strong>${escapeHtml(label)}</strong><span>${group.wins}-${group.losses}-${group.draws}</span><span>${rate}%</span></div>`;
+      }).join("");
     }
-</script>
 
+    function updateStats() {
+      if (!profileData) return;
+      const stats = profileData.stats;
+      const decisive = stats.wins + stats.losses;
+      const winRate = decisive ? Math.round((stats.wins / decisive) * 100) : 0;
+      $("totalMatches").textContent = stats.totalMatches;
+      $("winStat").textContent = stats.wins;
+      $("lossStat").textContent = stats.losses;
+      $("drawStat").textContent = stats.draws;
+      $("winRate").textContent = `${winRate}%`;
+      $("gamesWon").textContent = stats.gamesWon;
+      $("gamesLost").textContent = stats.gamesLost;
+      $("streakStat").textContent = calculateStreak();
+      renderBreakdown("leaderBreakdown", groupedStats("yourLeader"));
+      renderBreakdown("opponentLeaderBreakdown", groupedStats("opponentLeader"));
+      renderBreakdown("firstPlayerBreakdown", groupedStats("firstPlayer"));
+      renderBreakdown("matchTypeBreakdown", groupedStats("matchType"));
+      renderBreakdown("deckBreakdown", groupedStats("deck"));
+      renderBreakdown("eventBreakdown", groupedStats("event"));
+      renderBreakdown("matchupBreakdown", groupedStats(item => `${item.yourLeader || "Unknown"} vs ${item.opponentLeader || "Unknown"}`, "Unknown matchup"));
+    }
+
+    function formatDate(value) {
+      if (!value) return "Imported from old tracker";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "Unknown date";
+      return new Intl.DateTimeFormat(undefined, { year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" }).format(date);
+    }
+
+    function updateHistory() {
+      if (!profileData) return;
+      const list = $("historyList");
+      const search = $("historySearch").value.trim().toLowerCase();
+      const filter = $("historyFilter").value;
+      const items = profileData.history.filter(item => {
+        const type = item?.type || "legacy";
+        const result = type === "match" ? item.result : type;
+        if (filter !== "all" && result !== filter) return false;
+        if (!search) return true;
+        return [item.opponent,item.deck,item.event,item.note,item.text,item.yourLeader,item.opponentLeader,item.opponentDeck,item.matchType].filter(Boolean).join(" ").toLowerCase().includes(search);
+      });
+      if (!items.length) { list.innerHTML = '<div class="empty-state">No matching history yet.</div>'; return; }
+      list.innerHTML = items.map(item => {
+        if (item.type === "match") {
+          const resultLabel = item.result === "win" ? "W" : item.result === "loss" ? "L" : "D";
+          const score = `${item.scoreP1 ?? 0}–${item.scoreP2 ?? 0}`;
+          const details = [formatDate(item.date), item.matchType ? escapeHtml(item.matchType) : ""];
+          if (item.yourLeader) details.push(`Leader: ${escapeHtml(item.yourLeader)}`);
+          if (item.deck) details.push(`Deck: ${escapeHtml(item.deck)}`);
+          if (item.opponentLeader) details.push(`vs ${escapeHtml(item.opponentLeader)}`);
+          if (item.event) details.push(`Event: ${escapeHtml(item.event)}`);
+          if (item.firstPlayer && item.firstPlayer !== "unknown") details.push(item.firstPlayer === "me" ? "Went first" : "Went second");
+          return `<article class="history-item"><div class="history-top"><span class="result-badge ${escapeHtml(item.result)}">${resultLabel}</span><div class="history-main"><strong>${escapeHtml(username)} ${score} ${escapeHtml(item.opponent || "Opponent")}</strong><div class="history-meta">${details.filter(Boolean).join(" · ")}</div>${item.note ? `<div class="history-note">${escapeHtml(item.note)}</div>` : ""}</div><button class="secondary history-edit" data-history-id="${escapeHtml(item.id)}" type="button">Edit</button></div></article>`;
+        }
+        return `<article class="history-item"><div class="history-top"><span class="result-badge draw">OLD</span><div class="history-main"><strong>${escapeHtml(item.text || "Legacy history entry")}</strong><div class="history-meta">Imported from the previous tracker</div></div></div></article>`;
+      }).join("");
+    }
+
+    function toDateTimeLocal(value) {
+      const date = new Date(value || Date.now());
+      const offset = date.getTimezoneOffset();
+      return new Date(date.getTime() - offset * 60000).toISOString().slice(0,16);
+    }
+
+    function openHistoryEditor(id) {
+      const item = profileData.history.find(entry => entry.id === id && entry.type === "match");
+      if (!item) return;
+      $("historyEditId").value = item.id;
+      $("historyEditDate").value = toDateTimeLocal(item.date);
+      $("historyEditResult").value = item.result || "draw";
+      $("historyEditOpponent").value = item.opponent || "Opponent";
+      $("historyEditMatchType").value = ["casual","tournament","testing"].includes(item.matchType) ? item.matchType : "casual";
+      $("historyEditYourLeader").value = item.yourLeader || "";
+      $("historyEditDeck").value = item.deck || "";
+      $("historyEditOpponentLeader").value = item.opponentLeader || "";
+      $("historyEditOpponentDeck").value = item.opponentDeck || "";
+      $("historyEditEvent").value = item.event || "";
+      $("historyEditFirstPlayer").value = ["me","opponent","unknown"].includes(item.firstPlayer) ? item.firstPlayer : "unknown";
+      $("historyEditScoreP1").value = item.scoreP1 ?? 0;
+      $("historyEditScoreP2").value = item.scoreP2 ?? 0;
+      $("historyEditNote").value = item.note || "";
+      $("historyDialog").showModal();
+    }
+
+    function saveHistoryEdit() {
+      const id = $("historyEditId").value;
+      const index = profileData.history.findIndex(item => item.id === id && item.type === "match");
+      if (index < 0) return;
+      pushUndo();
+      const oldItem = deepClone(profileData.history[index]);
+      applyMatchToStats(oldItem, -1);
+      const newItem = {
+        ...oldItem,
+        date: new Date($("historyEditDate").value || Date.now()).toISOString(),
+        result: $("historyEditResult").value,
+        opponent: $("historyEditOpponent").value.trim() || "Opponent",
+        matchType: $("historyEditMatchType").value,
+        yourLeader: $("historyEditYourLeader").value.trim(),
+        deck: $("historyEditDeck").value.trim(),
+        opponentLeader: $("historyEditOpponentLeader").value.trim(),
+        opponentDeck: $("historyEditOpponentDeck").value.trim(),
+        event: $("historyEditEvent").value.trim(),
+        firstPlayer: $("historyEditFirstPlayer").value,
+        scoreP1: clampInt($("historyEditScoreP1").value, 0, 0, 99),
+        scoreP2: clampInt($("historyEditScoreP2").value, 0, 0, 99),
+        note: $("historyEditNote").value.trim()
+      };
+      profileData.history[index] = newItem; applyMatchToStats(newItem, 1);
+      saveAll(); updateUI(); $("historyDialog").close(); showToast("Match updated.");
+    }
+
+    function deleteHistoryEntry() {
+      const id = $("historyEditId").value;
+      const index = profileData.history.findIndex(item => item.id === id && item.type === "match");
+      if (index < 0 || !confirm("Delete this match from history and statistics?")) return;
+      pushUndo(); const [item] = profileData.history.splice(index,1); applyMatchToStats(item,-1);
+      saveAll(); updateUI(); $("historyDialog").close(); showToast("Match deleted.");
+    }
+
+    function updateUI() {
+      if (!profileData || !match) return;
+      $("playerOneName").textContent = username;
+      $("playerTwoName").textContent = match.opponent || "Opponent";
+      $("p1Score").textContent = match.p1; $("p2Score").textContent = match.p2;
+      $("p1Xp").textContent = match.xp1; $("p2Xp").textContent = match.xp2;
+      $("playerOneGames").textContent = `Games: ${match.matchP1}`;
+      $("playerTwoGames").textContent = `Games: ${match.matchP2}`;
+      $("matchScore").textContent = `${match.matchP1} – ${match.matchP2}`;
+      $("winningScoreDisplay").textContent = profileData.settings.winningScore;
+      $("diceResult").textContent = match.dice ?? "–";
+      $("opponentInput").value = match.opponent;
+      $("deckInput").value = match.deck; $("eventInput").value = match.event;
+      $("yourLeaderInput").value = match.yourLeader; $("opponentLeaderInput").value = match.opponentLeader;
+      $("opponentDeckInput").value = match.opponentDeck; $("matchTypeInput").value = match.matchType;
+      $("firstPlayerInput").value = match.matchFirstPlayer === 1 ? "me" : match.matchFirstPlayer === 2 ? "opponent" : "unknown";
+      $("noteInput").value = match.note;
+      $("overtimeBanner").classList.toggle("hidden", !match.overtime);
+      $("overtimeText").textContent = `${match.overtimeTurns} turn${match.overtimeTurns === 1 ? "" : "s"} remaining`;
+      $("tabletopBtn").classList.toggle("primary", match.tabletop);
+      document.body.classList.toggle("tabletop-mode", match.tabletop);
+      document.body.classList.toggle("no-opponent-rotate", !profileData.settings.rotateOpponent);
+      updateTimerUI(); updateUndoButton(); updateStats(); updateHistory(); updateWakeStatus();
+    }
+
+    function showScreen(name) {
+      document.querySelectorAll(".screen").forEach(screen => screen.classList.toggle("active", screen.id === name));
+      document.querySelectorAll(".nav-button").forEach(button => button.classList.toggle("active", button.dataset.screen === name));
+      if (name === "history") updateHistory();
+      if (name === "stats") updateStats();
+      window.scrollTo({ top:0, behavior:"smooth" });
+    }
+
+    function showToast(message) {
+      const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 2500);
+    }
+
+    function downloadBlob(filename, blob) {
+      const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
+      anchor.href = url; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+    }
+
+    function exportHistoryCsv() {
+      const rows = [["Date","Result","Opponent","Your leader","Your deck","Opponent leader","Opponent deck/colors","Event","Match type","First player","Your games","Opponent games","Notes"]];
+      profileData.history.filter(item => item.type === "match").forEach(item => rows.push([
+        item.date || "", item.result || "", item.opponent || "", item.yourLeader || "", item.deck || "",
+        item.opponentLeader || "", item.opponentDeck || "", item.event || "", item.matchType || "",
+        item.firstPlayer || "unknown", item.scoreP1 ?? "", item.scoreP2 ?? "", item.note || ""
+      ]));
+      const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"','""')}"`).join(",")).join("\r\n");
+      downloadBlob(`riftbound-history-${username}.csv`, new Blob(["\ufeff",csv], { type:"text/csv;charset=utf-8" }));
+    }
+
+    function exportBackup() {
+      saveInputsToMatch(); saveAll();
+      const backup = { app:"Riftbound Tracker", version:4, exportedAt:new Date().toISOString(), profile:username, profileData, match };
+      downloadBlob(`riftbound-backup-${username}.json`, new Blob([JSON.stringify(backup,null,2)], { type:"application/json" }));
+    }
+
+    function importBackup(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const backup = JSON.parse(String(reader.result));
+          const importedData = normalizeProfileData(backup.profileData || backup.data || backup);
+          const importedMatch = normalizeMatch(backup.match || defaultMatch(importedData.settings.timerMinutes), importedData.settings);
+          if (!confirm("Replace the current profile data with this backup?")) return;
+          pushUndo(); profileData = importedData; match = importedMatch;
+          saveAll(); loadSettingsIntoInputs(); updateUI(); syncWakeLock(); showToast("Backup imported.");
+        } catch { showToast("That backup file could not be read."); }
+        finally { $("importBackupFile").value = ""; }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetProfileData() {
+      if (!confirm("Reset all stats and history for this profile? This cannot be undone after closing the app.")) return;
+      pushUndo(); const settings = deepClone(profileData.settings);
+      profileData = defaultProfileData(); profileData.settings = settings; match = defaultMatch(settings.timerMinutes);
+      saveAll(); loadSettingsIntoInputs(); updateUI(); showToast("Profile data reset.");
+    }
+
+    function deleteProfile() {
+      if (!confirm(`Delete the profile “${username}” and all of its data?`)) return;
+      const profiles = loadProfiles().filter(name => name !== username); saveProfiles(profiles);
+      localStorage.removeItem(DATA_PREFIX + username); localStorage.removeItem(MATCH_PREFIX + username);
+      localStorage.removeItem(`stats_${username}`); localStorage.removeItem(`win_${username}`); localStorage.removeItem(`opponent_${username}`);
+      if (localStorage.getItem(LAST_PROFILE_KEY) === username) localStorage.removeItem(LAST_PROFILE_KEY);
+      switchProfile(); showToast("Profile deleted.");
+    }
+
+    function openEvents() { window.open("https://locator.riftbound.uvsgames.com/my-events", "_blank", "noopener,noreferrer"); }
+
+    function bindLongPressXp(element, player) {
+      let timer = null; let longPressed = false;
+      const cancel = () => { if (timer) clearTimeout(timer); timer = null; };
+      element.addEventListener("pointerdown", event => {
+        event.preventDefault(); longPressed = false;
+        timer = setTimeout(() => { longPressed = true; setXp(player,0); showToast("XP reset."); }, 650);
+      });
+      ["pointerup","pointercancel","pointerleave"].forEach(type => element.addEventListener(type, event => {
+        event.preventDefault(); cancel();
+        if (type === "pointerup" && !longPressed) openXpDialog(player);
+      }));
+      element.addEventListener("contextmenu", event => event.preventDefault());
+    }
+
+    function bindHoldAction(button, action) {
+      let holdTimer = null; let completed = false;
+      const cancel = () => { if (holdTimer) clearTimeout(holdTimer); holdTimer = null; button.classList.remove("holding"); };
+      button.addEventListener("pointerdown", event => {
+        event.preventDefault(); completed = false; button.classList.add("holding");
+        holdTimer = setTimeout(() => { completed = true; cancel(); action(); }, 900);
+      });
+      ["pointerup","pointercancel","pointerleave"].forEach(type => button.addEventListener(type, event => {
+        event.preventDefault(); const wasCompleted = completed; cancel();
+        if (type === "pointerup" && !wasCompleted) showToast("Hold the button for one second to reset the match.");
+      }));
+      button.addEventListener("click", event => event.preventDefault());
+      button.addEventListener("contextmenu", event => event.preventDefault());
+    }
+
+    function bindSwipeUndo() {
+      let startX = null; let startY = null;
+      const tracker = $("tracker");
+      tracker.addEventListener("pointerdown", event => {
+        if (event.target.closest("button,input,select,textarea,dialog,summary")) return;
+        startX = event.clientX; startY = event.clientY;
+      });
+      tracker.addEventListener("pointerup", event => {
+        if (startX === null) return;
+        const dx = event.clientX - startX; const dy = event.clientY - startY;
+        startX = null; startY = null;
+        if (dx < -100 && Math.abs(dy) < 55) undoLast();
+      });
+      tracker.addEventListener("pointercancel", () => { startX = null; startY = null; });
+    }
+
+    function bindEvents() {
+      $("createProfileBtn").addEventListener("click", createProfile);
+      $("loadProfileBtn").addEventListener("click", openSelectedProfile);
+      $("newProfileName").addEventListener("keydown", event => { if (event.key === "Enter") createProfile(); });
+      $("switchProfileBtn").addEventListener("click", switchProfile);
+
+      document.querySelectorAll(".nav-button").forEach(button => button.addEventListener("click", () => showScreen(button.dataset.screen)));
+      document.querySelectorAll(".score-button").forEach(button => button.addEventListener("click", () => changeScore(Number(button.dataset.player), Number(button.dataset.delta))));
+      document.querySelectorAll(".xp-button").forEach(button => button.addEventListener("click", () => changeXp(Number(button.dataset.xpPlayer), Number(button.dataset.xpDelta))));
+      document.querySelectorAll("[data-xp-display]").forEach(element => bindLongPressXp(element, Number(element.dataset.xpDisplay)));
+
+      [$("opponentInput"),$("deckInput"),$("eventInput"),$("yourLeaderInput"),$("opponentLeaderInput"),$("opponentDeckInput"),$("matchTypeInput"),$("firstPlayerInput"),$("noteInput")]
+        .forEach(input => input.addEventListener("input", () => { saveInputsToMatch(); saveAll(); $("playerTwoName").textContent = match.opponent; }));
+
+      [$("winInput"),$("bestOfInput"),$("timerMinutesInput"),$("autoOvertimeInput"),$("wakeLockInput"),$("hapticsInput"),$("soundInput"),$("rotateOpponentInput")]
+        .forEach(input => input.addEventListener("change", () => { saveSettingsFromInputs(); if (input === $("soundInput") && input.checked) { ensureAudio(); tone(620,.08,.04); } }));
+
+      document.querySelectorAll(".timer-preset").forEach(button => button.addEventListener("click", () => {
+        $("timerMinutesInput").value = button.dataset.minutes; saveSettingsFromInputs(); resetTimer();
+      }));
+
+      $("undoBtn").addEventListener("click", undoLast);
+      $("rollDiceBtn").addEventListener("click", rollDice);
+      $("overtimeBtn").addEventListener("click", () => startOvertime(true));
+      $("nextTurnBtn").addEventListener("click", nextOvertimeTurn);
+      $("awardMeBtn").addEventListener("click", () => forceMatchResult("win"));
+      $("awardOpponentBtn").addEventListener("click", () => forceMatchResult("loss"));
+      $("recordDrawBtn").addEventListener("click", () => finalizeMatch("draw"));
+      $("resetGameBtn").addEventListener("click", resetCurrentGame);
+      bindHoldAction($("resetMatchBtn"), resetEntireMatch);
+      $("quickMatchBtn").addEventListener("click", startQuickMatch);
+      $("quickMatchSetupBtn").addEventListener("click", startQuickMatch);
+      $("tabletopBtn").addEventListener("click", toggleTabletop);
+      $("tabletopExitBtn").addEventListener("click", () => setTabletop(false));
+
+      $("timerToggleBtn").addEventListener("click", toggleTimer);
+      $("timerResetBtn").addEventListener("click", resetTimer);
+
+      $("historySearch").addEventListener("input", updateHistory);
+      $("historyFilter").addEventListener("change", updateHistory);
+      $("historyList").addEventListener("click", event => {
+        const button = event.target.closest("[data-history-id]");
+        if (button) openHistoryEditor(button.dataset.historyId);
+      });
+      $("saveHistoryBtn").addEventListener("click", saveHistoryEdit);
+      $("deleteHistoryBtn").addEventListener("click", deleteHistoryEntry);
+      $("exportCsvBtn").addEventListener("click", exportHistoryCsv);
+
+      document.querySelectorAll("[data-close-dialog]").forEach(button => button.addEventListener("click", () => $(button.dataset.closeDialog).close()));
+      document.querySelectorAll(".xp-dialog-delta").forEach(button => button.addEventListener("click", () => {
+        changeXp(activeXpPlayer, Number(button.dataset.delta)); openXpDialogRefresh();
+      }));
+      $("xpResetBtn").addEventListener("click", () => { setXp(activeXpPlayer,0); openXpDialogRefresh(); });
+      $("xpSetExactBtn").addEventListener("click", () => { setXp(activeXpPlayer,$("xpExactInput").value); openXpDialogRefresh(); });
+
+      $("openEventsBtn").addEventListener("click", openEvents);
+      $("exportBackupBtn").addEventListener("click", exportBackup);
+      $("importBackupBtn").addEventListener("click", () => $("importBackupFile").click());
+      $("importBackupFile").addEventListener("change", event => importBackup(event.target.files?.[0]));
+      $("resetStatsBtn").addEventListener("click", resetProfileData);
+      $("deleteProfileBtn").addEventListener("click", deleteProfile);
+
+      bindSwipeUndo();
+
+      window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); deferredInstallPrompt = event; $("installBtn").classList.remove("hidden"); });
+      $("installBtn").addEventListener("click", async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null; $("installBtn").classList.add("hidden");
+      });
+      window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; $("installBtn").classList.add("hidden"); });
+      window.addEventListener("beforeunload", () => { if (username) { updateTimerFromClock(false); saveInputsToMatch(); saveAll(); } });
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { updateTimerFromClock(true); syncWakeLock(); } });
+    }
+
+    function openXpDialogRefresh() {
+      const value = activeXpPlayer === 1 ? match.xp1 : match.xp2;
+      $("xpDialogTitle").textContent = `${activeXpPlayer === 1 ? username : match.opponent} XP / Level: ${value}`;
+      $("xpExactInput").value = value;
+    }
+
+    function init() {
+      bindEvents(); refreshProfileDropdown(); updateUndoButton(); updateWakeStatus();
+      if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    }
+
+    init();
+  </script>
 </body>
 </html>
