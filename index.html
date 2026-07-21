@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#1b1031">
   <meta name="description" content="Riftbound tabletop score, XP, deck library, timer and match history tracker">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="RiftboundS.png">
-  <link rel="apple-touch-icon" href="RiftboundS.png">
-  <title>Riftbound Tracker</title>
+  <link rel="icon" href="RiftboundL.png">
+  <link rel="apple-touch-icon" href="RiftboundL.png">
+  <title>Riftbound Tracker · Ahri Edition</title>
 
   <style>
     :root {
@@ -443,6 +443,84 @@
     .deck-import-status.good { color: #67e6ae; }
     .deck-import-status.warn { color: #fde68a; }
 
+    .field-hint {
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+    .deck-combobox {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 46px;
+      gap: 7px;
+      width: 100%;
+    }
+    .deck-combobox > input { min-width: 0; }
+    .deck-dropdown-toggle {
+      min-height: 44px;
+      border: 1px solid rgba(125,241,255,.28);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(125,241,255,.15), rgba(255,103,196,.10));
+      color: var(--accent-2);
+      font-size: 1.3rem;
+      font-weight: 950;
+      cursor: pointer;
+    }
+    .deck-dropdown-toggle[aria-expanded="true"] { transform: rotate(180deg); }
+    .deck-dropdown-menu {
+      position: absolute;
+      z-index: 75;
+      top: calc(100% + 7px);
+      left: 0;
+      right: 0;
+      max-height: 270px;
+      overflow-y: auto;
+      padding: 7px;
+      border: 1px solid rgba(176,151,228,.30);
+      border-radius: 15px;
+      background: linear-gradient(180deg, rgba(37,24,65,.99), rgba(17,12,33,.99));
+      box-shadow: 0 20px 46px rgba(0,0,0,.48), var(--glow-pink);
+      backdrop-filter: blur(18px);
+    }
+    .deck-dropdown-option {
+      display: block;
+      width: 100%;
+      min-height: 50px;
+      padding: 9px 11px;
+      border: 0;
+      border-radius: 11px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+    .deck-dropdown-option:hover,
+    .deck-dropdown-option:focus-visible {
+      background: linear-gradient(90deg, rgba(255,103,196,.15), rgba(125,241,255,.11));
+    }
+    .deck-dropdown-option strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: .88rem;
+    }
+    .deck-dropdown-option span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: .69rem;
+      font-weight: 650;
+    }
+    .deck-dropdown-empty {
+      padding: 12px;
+      color: var(--muted);
+      font-size: .78rem;
+      line-height: 1.4;
+      text-align: center;
+    }
+
     .bottom-nav {
       position: fixed;
       z-index: 30;
@@ -633,6 +711,7 @@
       <div class="hero">
         <img src="RiftboundL.png" alt="Riftbound Tracker logo">
         <h1>Riftbound Tracker</h1>
+        <p>Ahri edition — score, XP, saved decks, timer and match history.</p>
       </div>
 
       <main style="padding-top:0">
@@ -660,9 +739,9 @@
 
     <section id="appScreen" class="hidden">
       <header class="app-header">
-        <img class="brand-mark" src="Ahri.png" alt="">
+        <img class="brand-mark" src="RiftboundL.png" alt="">
         <div class="brand-copy">
-          <div class="brand-title">Riftbound Tracker</div>
+          <div class="brand-title">Riftbound Tracker · Ahri</div>
           <div id="headerProfile" class="brand-subtitle"></div>
         </div>
         <button id="installBtn" class="icon-button hidden" type="button">Install</button>
@@ -690,8 +769,11 @@
                   </select>
                 </label>
                 <label class="field">Your deck
-                  <input id="deckInput" type="text" list="deckOptions" maxlength="80" placeholder="Choose or type a deck">
-                  <datalist id="deckOptions"></datalist>
+                  <div id="deckCombobox" class="deck-combobox">
+                    <input id="deckInput" type="text" maxlength="80" autocomplete="off" placeholder="Choose a saved deck or type any deck name" aria-autocomplete="list" aria-controls="deckDropdownMenu" aria-expanded="false">
+                    <button id="deckDropdownBtn" class="deck-dropdown-toggle" type="button" aria-label="Show saved decks" aria-controls="deckDropdownMenu" aria-expanded="false">⌄</button>
+                    <div id="deckDropdownMenu" class="deck-dropdown-menu hidden" role="listbox" aria-label="Saved decks"></div>
+                  </div>
                 </label>
                 <label class="field">Opponent deck / colors
                   <input id="opponentDeckInput" type="text" maxlength="80" placeholder="Optional">
@@ -700,7 +782,6 @@
               <div class="button-row" style="margin-top:12px">
                 <button id="quickMatchSetupBtn" class="primary" type="button">Start match</button>
               </div>
-              <p class="help-callout"><strong>Match:</strong> starts a fresh match immediately. It resets score, XP, dice, overtime and the timer; clears the opponent fields; and keeps your deck, event and match type.</p>
             </div>
           </details>
 
@@ -891,7 +972,7 @@
               <button id="importBackupBtn" class="secondary" type="button">Import backup</button>
               <input id="importBackupFile" class="hidden" type="file" accept="application/json,.json">
             </div>
-            <p class="muted small" style="margin-bottom:0">Tip: swipe left anywhere on the tracker background to undo. Hold an XP number to reset it.</p>
+            <p class="muted small" style="margin-bottom:0">Tip: swipe left anywhere on the tracker background to undo.</p>
           </div>
 
           <div class="card">
@@ -1704,14 +1785,59 @@
       }).join("");
     }
 
-    function refreshDeckDatalist() {
-      const target = $("deckOptions");
-      if (!target || !profileData) return;
-      target.innerHTML = profileData.decks
+    function getSavedDeckChoices(query = "") {
+      if (!profileData) return [];
+      const term = String(query || "").trim().toLowerCase();
+      return profileData.decks
         .slice()
         .sort((a,b) => a.name.localeCompare(b.name))
-        .map(deck => `<option value="${escapeHtml(deck.name)}"></option>`)
-        .join("");
+        .filter(deck => !term || deck.name.toLowerCase().includes(term));
+    }
+
+    function renderDeckDropdown(query = "") {
+      const target = $("deckDropdownMenu");
+      if (!target || !profileData) return;
+      const decks = getSavedDeckChoices(query);
+      if (!profileData.decks.length) {
+        target.innerHTML = '<div class="deck-dropdown-empty">No saved decks yet. Add one in the <strong>Decks</strong> tab, or type any deck name here.</div>';
+        return;
+      }
+      if (!decks.length) {
+        target.innerHTML = '<div class="deck-dropdown-empty">No saved deck matches your text. You can still use the name you typed.</div>';
+        return;
+      }
+      target.innerHTML = decks.map(deck => {
+        const mainTotal = cardTotal(deck.main);
+        const sideTotal = cardTotal(deck.sideboard);
+        const meta = `${mainTotal} main${sideTotal ? ` · ${sideTotal} sideboard` : ""}`;
+        return `<button class="deck-dropdown-option" type="button" role="option" data-saved-deck-name="${escapeHtml(deck.name)}"><strong>${escapeHtml(deck.name)}</strong><span>${escapeHtml(meta)}</span></button>`;
+      }).join("");
+    }
+
+    function setDeckDropdown(open) {
+      const menu = $("deckDropdownMenu");
+      const button = $("deckDropdownBtn");
+      const input = $("deckInput");
+      if (!menu || !button || !input) return;
+      const shouldOpen = Boolean(open);
+      if (shouldOpen) renderDeckDropdown(input.value);
+      menu.classList.toggle("hidden", !shouldOpen);
+      button.setAttribute("aria-expanded", String(shouldOpen));
+      input.setAttribute("aria-expanded", String(shouldOpen));
+    }
+
+    function chooseSavedDeck(name) {
+      if (!match) return;
+      $("deckInput").value = name;
+      match.deck = name;
+      saveAll();
+      setDeckDropdown(false);
+      updateUI();
+      showToast(`Using ${name}.`);
+    }
+
+    function refreshDeckDatalist() {
+      renderDeckDropdown($("deckInput")?.value || "");
     }
 
     function renderDecks() {
@@ -2095,6 +2221,26 @@
 
       [$("opponentInput"),$("deckInput"),$("eventInput"),$("opponentDeckInput"),$("matchTypeInput")]
         .forEach(input => input.addEventListener("input", () => { saveInputsToMatch(); saveAll(); $("playerTwoName").textContent = match.opponent; }));
+
+      $("deckDropdownBtn").addEventListener("click", () => {
+        const isOpen = !$("deckDropdownMenu").classList.contains("hidden");
+        setDeckDropdown(!isOpen);
+      });
+      $("deckInput").addEventListener("focus", () => setDeckDropdown(true));
+      $("deckInput").addEventListener("input", () => {
+        renderDeckDropdown($("deckInput").value);
+        setDeckDropdown(true);
+      });
+      $("deckInput").addEventListener("keydown", event => {
+        if (event.key === "Escape") setDeckDropdown(false);
+      });
+      $("deckDropdownMenu").addEventListener("click", event => {
+        const option = event.target.closest("[data-saved-deck-name]");
+        if (option) chooseSavedDeck(option.dataset.savedDeckName);
+      });
+      document.addEventListener("pointerdown", event => {
+        if (!event.target.closest("#deckCombobox")) setDeckDropdown(false);
+      });
 
       [$("winInput"),$("bestOfInput"),$("timerMinutesInput"),$("autoOvertimeInput"),$("wakeLockInput"),$("hapticsInput"),$("soundInput"),$("rotateOpponentInput")]
         .forEach(input => input.addEventListener("change", () => { saveSettingsFromInputs(); if (input === $("soundInput") && input.checked) { ensureAudio(); tone(620,.08,.04); } }));
