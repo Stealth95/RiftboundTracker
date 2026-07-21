@@ -1,10 +1,11 @@
-const CACHE_NAME = "riftbound-tracker-v4.7.0";
+const CACHE_NAME = "riftbound-tracker-v4.8.0";
 const APP_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./RiftboundS.png",
-  "./RiftboundL.jpg"
+  "./AhriIcon180.png",
+  "./AhriIcon192.png",
+  "./AhriIcon512.png"
 ];
 
 self.addEventListener("install", event => {
