@@ -1,4 +1,4 @@
-const CACHE_NAME = "riftbound-tracker-v4.4.0";
+const CACHE_NAME = "riftbound-tracker-v4.7.0";
 const APP_ASSETS = [
   "./",
   "./index.html",

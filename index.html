@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="RiftboundL.png">
   <link rel="apple-touch-icon" href="RiftboundL.png">
-  <title>Riftbound Tracker · Ahri Edition</title>
+  <title>Riftbound Tracker</title>
 
   <style>
     :root {
@@ -425,6 +425,60 @@
     .deck-card-main { flex: 1; min-width: 0; }
     .deck-card h3 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .deck-meta { color: var(--muted); font-size: .78rem; margin-top: 5px; line-height: 1.45; }
+    .deck-performance {
+      display: grid;
+      gap: 9px;
+      margin-top: 12px;
+      padding: 11px 12px;
+      border: 1px solid rgba(125,241,255,.16);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(125,241,255,.055), rgba(255,103,196,.035));
+    }
+    .deck-performance-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .deck-performance-summary strong { font-size: .88rem; }
+    .deck-performance-record { color: var(--muted); font-size: .76rem; font-weight: 800; }
+    .deck-winrate-pill {
+      display: inline-grid;
+      place-items: center;
+      min-width: 58px;
+      min-height: 32px;
+      padding: 5px 9px;
+      border: 1px solid rgba(125,241,255,.26);
+      border-radius: 999px;
+      background: rgba(125,241,255,.09);
+      color: var(--accent-2);
+      font-size: .82rem;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+    .deck-matchups { display: grid; gap: 6px; }
+    .deck-matchups-title {
+      color: var(--gold);
+      font-size: .68rem;
+      font-weight: 900;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+    }
+    .deck-matchup-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 8px;
+      border-radius: 10px;
+      background: rgba(0,0,0,.16);
+      font-size: .76rem;
+    }
+    .deck-matchup-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .deck-matchup-row span { color: var(--muted); white-space: nowrap; }
+    .deck-matchup-rate { color: var(--accent-2) !important; font-weight: 900; }
+    .deck-no-stats { color: var(--muted); font-size: .76rem; line-height: 1.4; }
     .deck-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 11px; }
     .deck-actions button { flex: 1 1 105px; min-height: 40px; padding: 7px 10px; }
     .deck-preview {
@@ -577,23 +631,95 @@
     @keyframes time-flash { 0%,35% { opacity: 1; } 100% { opacity: 0; } }
 
     dialog {
-      width: min(calc(100% - 24px), 620px);
-      max-height: min(90dvh, 820px);
+      width: min(calc(100% - 24px), 680px);
+      max-height: min(92dvh, 860px);
       overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 20px;
+      border: 1px solid rgba(176,151,228,.34);
+      border-radius: 26px;
       padding: 0;
       color: var(--text);
-      background: linear-gradient(180deg, #102a3f, #0d2233);
-      box-shadow: 0 30px 80px rgba(0,0,0,.55);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255,103,196,.20), transparent 32%),
+        radial-gradient(circle at 88% 8%, rgba(125,241,255,.14), transparent 28%),
+        linear-gradient(180deg, #251642 0%, #17102d 48%, #0d0a19 100%);
+      box-shadow: 0 34px 100px rgba(0,0,0,.68), 0 0 42px rgba(255,103,196,.12), 0 0 34px rgba(125,241,255,.08);
     }
-    dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(4px); }
-    .dialog-body { padding: 18px; }
-    .dialog-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
-    .dialog-head h2 { margin: 0; font-size: 1.15rem; }
-    .dialog-close { min-height: 38px; min-width: 38px; padding: 5px; }
+    dialog::backdrop { background: rgba(5,3,12,.82); backdrop-filter: blur(8px); }
+    #deckDialog { width: min(calc(100% - 24px), 740px); }
+    #historyDialog { width: min(calc(100% - 24px), 700px); }
+    .dialog-body {
+      position: relative;
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,.025), transparent 26%);
+    }
+    .dialog-body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 25px;
+      pointer-events: none;
+      border: 1px solid rgba(255,255,255,.035);
+    }
+    .dialog-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: -20px -20px 18px;
+      padding: 16px 18px;
+      background: linear-gradient(180deg, rgba(37,22,66,.98), rgba(25,15,46,.94));
+      border-bottom: 1px solid rgba(176,151,228,.22);
+      backdrop-filter: blur(14px);
+    }
+    .dialog-head h2 {
+      margin: 0;
+      font-size: 1.18rem;
+      letter-spacing: .02em;
+      background: linear-gradient(90deg, #fff7fc, #ff9edc 54%, #9cf7ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .dialog-close {
+      min-height: 40px;
+      min-width: 40px;
+      padding: 5px;
+      border-color: rgba(255,103,196,.24);
+      background: rgba(255,255,255,.06);
+    }
+    dialog input, dialog select, dialog textarea {
+      background: rgba(5,3,15,.50);
+      border-color: rgba(176,151,228,.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+    }
+    dialog input:focus, dialog select:focus, dialog textarea:focus {
+      border-color: rgba(125,241,255,.48);
+      box-shadow: 0 0 0 3px rgba(125,241,255,.10), 0 0 20px rgba(255,103,196,.08);
+    }
+    dialog .deck-preview {
+      background: rgba(5,3,15,.56);
+      border-color: rgba(125,241,255,.18);
+    }
+    .dialog-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 9px;
+      margin-top: 14px;
+    }
+    .dialog-actions button { min-height: 47px; }
+    .dialog-actions .full { grid-column: 1 / -1; }
     .xp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .xp-grid button { min-height: 48px; }
+    @media (max-width: 520px) {
+      dialog { width: calc(100% - 14px); max-height: 94dvh; border-radius: 22px; }
+      .dialog-body { padding: 16px; }
+      .dialog-head { margin: -16px -16px 16px; padding: 14px 15px; }
+      .dialog-actions { grid-template-columns: 1fr; }
+      .dialog-actions .full { grid-column: auto; }
+    }
 
     .hold-button.holding { box-shadow: inset 0 -4px 0 var(--accent-2); animation: hold-fill .9s linear; }
     @keyframes hold-fill { from { filter: brightness(.8); } to { filter: brightness(1.4); } }
@@ -711,7 +837,6 @@
       <div class="hero">
         <img src="RiftboundL.png" alt="Riftbound Tracker logo">
         <h1>Riftbound Tracker</h1>
-        <p>Ahri edition — score, XP, saved decks, timer and match history.</p>
       </div>
 
       <main style="padding-top:0">
@@ -741,7 +866,7 @@
       <header class="app-header">
         <img class="brand-mark" src="RiftboundL.png" alt="">
         <div class="brand-copy">
-          <div class="brand-title">Riftbound Tracker · Ahri</div>
+          <div class="brand-title">Riftbound Tracker</div>
           <div id="headerProfile" class="brand-subtitle"></div>
         </div>
         <button id="installBtn" class="icon-button hidden" type="button">Install</button>
@@ -1034,9 +1159,10 @@
       </div>
       <div id="deckImportStatus" class="deck-import-status">Paste a numbered deck list to preview it.</div>
       <pre id="deckImportPreview" class="deck-preview hidden"></pre>
-      <div class="button-row" style="margin-top:14px">
+      <div class="dialog-actions">
         <button id="saveDeckBtn" class="primary" type="button">Save deck</button>
-        <button id="copyDeckBtn" class="secondary" type="button">Copy list</button>
+        <button id="copyDeckBtn" class="secondary" type="button">Copy deck list</button>
+        <button id="exportDeckBtn" class="secondary" type="button">Export .txt</button>
         <button id="deleteDeckBtn" class="danger hidden" type="button">Delete deck</button>
       </div>
     </div>
@@ -1050,18 +1176,14 @@
         <label class="field">Date and time<input id="historyEditDate" type="datetime-local"></label>
         <label class="field">Result<select id="historyEditResult"><option value="win">Win</option><option value="loss">Loss</option><option value="draw">Draw</option></select></label>
         <label class="field">Opponent<input id="historyEditOpponent" type="text" maxlength="60"></label>
-        <label class="field">Match type<select id="historyEditMatchType"><option value="casual">Casual</option><option value="tournament">Tournament</option><option value="testing">Testing</option></select></label>
-        <label class="field">Your leader<input id="historyEditYourLeader" type="text" maxlength="60"></label>
-        <label class="field">Your deck<input id="historyEditDeck" type="text" maxlength="80"></label>
-        <label class="field">Opponent leader<input id="historyEditOpponentLeader" type="text" maxlength="60"></label>
-        <label class="field">Opponent deck / colors<input id="historyEditOpponentDeck" type="text" maxlength="80"></label>
         <label class="field">Event<input id="historyEditEvent" type="text" maxlength="80"></label>
-        <label class="field">First player<select id="historyEditFirstPlayer"><option value="unknown">Unknown</option><option value="me">Me</option><option value="opponent">Opponent</option></select></label>
+        <label class="field">Match type<select id="historyEditMatchType"><option value="casual">Casual</option><option value="tournament">Tournament</option><option value="testing">Testing</option></select></label>
+        <label class="field">Your deck<input id="historyEditDeck" type="text" maxlength="80"></label>
+        <label class="field">Opponent deck / colors<input id="historyEditOpponentDeck" type="text" maxlength="80"></label>
         <label class="field">Your games<input id="historyEditScoreP1" type="number" min="0" max="99"></label>
         <label class="field">Opponent games<input id="historyEditScoreP2" type="number" min="0" max="99"></label>
-        <label class="field" style="grid-column:1/-1">Notes<textarea id="historyEditNote" maxlength="1000"></textarea></label>
       </div>
-      <div class="button-row" style="margin-top:14px">
+      <div class="dialog-actions">
         <button id="saveHistoryBtn" class="primary" type="button">Save changes</button>
         <button id="deleteHistoryBtn" class="danger" type="button">Delete match</button>
       </div>
@@ -1625,13 +1747,21 @@
 
     function startMatch() {
       if (hasMatchProgress() && !confirm("Start a new match and discard the current unrecorded match?")) return;
-      const keep = { deck: match.deck, event: match.event, matchType: match.matchType, tabletop: match.tabletop };
-      match = defaultMatch(profileData.settings.timerMinutes); Object.assign(match, keep);
-      match.opponent = "Opponent";
-      match.opponentDeck = "";
+
+      // Capture the current Match Setup before creating the fresh match.
+      const setup = {
+        opponent: $("opponentInput").value.trim() || "Opponent",
+        event: $("eventInput").value.trim(),
+        matchType: $("matchTypeInput").value || "casual",
+        deck: $("deckInput").value.trim(),
+        opponentDeck: $("opponentDeckInput").value.trim(),
+        tabletop: match.tabletop
+      };
+
+      match = defaultMatch(profileData.settings.timerMinutes);
+      Object.assign(match, setup);
       saveAll(); loadSettingsIntoInputs(); updateUI(); showScreen("tracker");
-      if (!match.tabletop) $("opponentInput").focus();
-      showToast("Match ready: your deck, event and match type were kept.");
+      showToast(`Match started vs ${match.opponent}${match.opponentDeck ? ` · ${match.opponentDeck}` : ""}.`);
     }
 
     function formatTimer(seconds) {
@@ -1840,6 +1970,84 @@
       renderDeckDropdown($("deckInput")?.value || "");
     }
 
+    function normalizedDeckName(value) {
+      return String(value || "").trim().toLocaleLowerCase();
+    }
+
+    function savedDeckPerformance(deckName) {
+      const wanted = normalizedDeckName(deckName);
+      const matches = profileData.history.filter(item =>
+        item?.type === "match" && normalizedDeckName(item.deck) === wanted
+      );
+      const overall = { matches:0, wins:0, losses:0, draws:0 };
+      const matchupMap = new Map();
+      let missingOpponentDeck = 0;
+
+      matches.forEach(item => {
+        overall.matches += 1;
+        if (item.result === "win") overall.wins += 1;
+        if (item.result === "loss") overall.losses += 1;
+        if (item.result === "draw") overall.draws += 1;
+
+        const opponentDeck = String(item.opponentDeck || "").trim();
+        if (!opponentDeck) {
+          missingOpponentDeck += 1;
+          return;
+        }
+        const key = normalizedDeckName(opponentDeck);
+        const group = matchupMap.get(key) || {
+          name: opponentDeck,
+          matches: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0
+        };
+        group.matches += 1;
+        if (item.result === "win") group.wins += 1;
+        if (item.result === "loss") group.losses += 1;
+        if (item.result === "draw") group.draws += 1;
+        matchupMap.set(key, group);
+      });
+
+      const matchups = [...matchupMap.values()].sort((a,b) =>
+        b.matches - a.matches || b.wins - a.wins || a.name.localeCompare(b.name)
+      );
+      return { overall, matchups, missingOpponentDeck };
+    }
+
+    function winRateForRecord(record) {
+      const decisive = record.wins + record.losses;
+      return decisive ? Math.round(record.wins / decisive * 100) : 0;
+    }
+
+    function renderSavedDeckPerformance(deckName) {
+      const { overall, matchups, missingOpponentDeck } = savedDeckPerformance(deckName);
+      if (!overall.matches) {
+        return '<div class="deck-performance"><div class="deck-no-stats">No matches have been recorded with this saved deck yet.</div></div>';
+      }
+
+      const overallRate = winRateForRecord(overall);
+      const matchupRows = matchups.map(group => {
+        const rate = winRateForRecord(group);
+        return `<div class="deck-matchup-row"><strong>${escapeHtml(group.name)}</strong><span>${group.wins}-${group.losses}-${group.draws}</span><span class="deck-matchup-rate">${rate}%</span></div>`;
+      }).join("");
+      const unknownNote = missingOpponentDeck
+        ? `<div class="deck-no-stats">${missingOpponentDeck} match${missingOpponentDeck === 1 ? "" : "es"} did not include an opponent deck.</div>`
+        : "";
+      const matchupBlock = matchupRows
+        ? `<div class="deck-matchups"><div class="deck-matchups-title">Win rate against each deck</div>${matchupRows}</div>`
+        : '<div class="deck-no-stats">Add the opponent deck in Match Setup to build matchup win rates.</div>';
+
+      return `<div class="deck-performance">
+        <div class="deck-performance-summary">
+          <div><strong>Overall performance</strong><div class="deck-performance-record">${overall.matches} match${overall.matches === 1 ? "" : "es"} · ${overall.wins}-${overall.losses}-${overall.draws}</div></div>
+          <span class="deck-winrate-pill">${overallRate}%</span>
+        </div>
+        ${matchupBlock}
+        ${unknownNote}
+      </div>`;
+    }
+
     function renderDecks() {
       if (!profileData) return;
       const search = $("deckSearch")?.value.trim().toLowerCase() || "";
@@ -1857,6 +2065,7 @@
         return `<article class="deck-card">
           <div class="deck-card-top"><div class="deck-card-main"><h3>${escapeHtml(deck.name)}</h3>
           <div class="deck-meta">${mainTotal} main-deck cards · ${deck.main.length} unique${sideTotal ? ` · ${sideTotal} sideboard` : ""}</div></div></div>
+          ${renderSavedDeckPerformance(deck.name)}
           <div class="deck-actions">
             <button class="primary" data-deck-action="use" data-deck-id="${escapeHtml(deck.id)}" type="button">Use in match</button>
             <button class="secondary" data-deck-action="edit" data-deck-id="${escapeHtml(deck.id)}" type="button">View / edit</button>
@@ -1926,19 +2135,88 @@
       match.deck = deck.name; saveAll(); updateUI(); showScreen("tracker"); showToast(`Using ${deck.name}.`);
     }
 
+    async function copyTextReliable(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {}
+      }
+      const helper = document.createElement("textarea");
+      helper.value = text;
+      helper.setAttribute("readonly", "");
+      helper.style.position = "fixed";
+      helper.style.left = "-9999px";
+      helper.style.top = "0";
+      helper.style.opacity = "0";
+      document.body.appendChild(helper);
+      helper.focus();
+      helper.select();
+      helper.setSelectionRange(0, helper.value.length);
+      let copied = false;
+      try { copied = document.execCommand("copy"); } catch {}
+      helper.remove();
+      return copied;
+    }
+
     async function copyDeck(deckId = $("deckEditId").value) {
       const deck = profileData.decks.find(item => item.id === deckId);
       const text = deck ? formatDeckText(deck) : $("deckImportText").value;
       if (!text.trim()) return showToast("There is no deck list to copy.");
-      try { await navigator.clipboard.writeText(text); showToast("Deck list copied."); }
-      catch { showToast("Copy was blocked by the browser. Select the text and copy it manually."); }
+      const copied = await copyTextReliable(text);
+      if (copied) showToast("Deck list copied.");
+      else {
+        $("deckImportText").value = text;
+        $("deckImportText").focus();
+        $("deckImportText").select();
+        showToast("The deck list is selected. Use Copy from your phone menu.");
+      }
     }
 
-    function exportDeck(deckId) {
+    async function saveTextFile(filename, text) {
+      const mime = "text/plain;charset=utf-8";
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: "Text file", accept: { "text/plain": [".txt"] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(text);
+          await writable.close();
+          return "saved";
+        } catch (error) {
+          if (error?.name === "AbortError") return "cancelled";
+        }
+      }
+      if (typeof File !== "undefined" && navigator.share && navigator.canShare) {
+        try {
+          const file = new File([text], filename, { type: mime });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: filename });
+            return "shared";
+          }
+        } catch (error) {
+          if (error?.name === "AbortError") return "cancelled";
+        }
+      }
+      downloadBlob(filename, new Blob([text], { type: mime }));
+      return "downloaded";
+    }
+
+    async function exportDeck(deckId = $("deckEditId").value) {
       const deck = profileData.decks.find(item => item.id === deckId);
-      if (!deck) return;
-      const safeName = deck.name.replace(/[^a-z0-9-_]+/gi,"-").replace(/^-+|-+$/g,"") || "riftbound-deck";
-      downloadBlob(`${safeName}.txt`, new Blob([formatDeckText(deck)], { type:"text/plain;charset=utf-8" }));
+      const name = deck?.name || $("deckNameInput").value.trim() || "riftbound-deck";
+      const text = deck ? formatDeckText(deck) : $("deckImportText").value;
+      if (!text.trim()) return showToast("There is no deck list to export.");
+      const safeName = name.replace(/[^a-z0-9-_]+/gi,"-").replace(/^-+|-+$/g,"") || "riftbound-deck";
+      try {
+        const result = await saveTextFile(`${safeName}.txt`, text);
+        if (result === "saved" || result === "downloaded") showToast("Deck exported as a .txt file.");
+        if (result === "shared") showToast("Deck file opened in the share/save menu.");
+      } catch {
+        showToast("The deck could not be exported on this browser.");
+      }
     }
 
     function handleDeckListAction(event) {
@@ -1994,12 +2272,11 @@
         if (item.type === "match") {
           const resultLabel = item.result === "win" ? "W" : item.result === "loss" ? "L" : "D";
           const score = `${item.scoreP1 ?? 0}–${item.scoreP2 ?? 0}`;
-          const details = [formatDate(item.date), item.matchType ? escapeHtml(item.matchType) : ""];
-          if (item.yourLeader) details.push(`Leader: ${escapeHtml(item.yourLeader)}`);
-          if (item.deck) details.push(`Deck: ${escapeHtml(item.deck)}`);
-          if (item.opponentLeader) details.push(`vs ${escapeHtml(item.opponentLeader)}`);
+          const details = [formatDate(item.date)];
+          if (item.matchType) details.push(`Type: ${escapeHtml(item.matchType)}`);
           if (item.event) details.push(`Event: ${escapeHtml(item.event)}`);
-          if (item.firstPlayer && item.firstPlayer !== "unknown") details.push(item.firstPlayer === "me" ? "Went first" : "Went second");
+          if (item.deck) details.push(`Your deck: ${escapeHtml(item.deck)}`);
+          details.push(`Opponent deck: ${escapeHtml(item.opponentDeck || "Not entered")}`);
           return `<article class="history-item"><div class="history-top"><span class="result-badge ${escapeHtml(item.result)}">${resultLabel}</span><div class="history-main"><strong>${escapeHtml(username)} ${score} ${escapeHtml(item.opponent || "Opponent")}</strong><div class="history-meta">${details.filter(Boolean).join(" · ")}</div>${item.note ? `<div class="history-note">${escapeHtml(item.note)}</div>` : ""}</div><button class="secondary history-edit" data-history-id="${escapeHtml(item.id)}" type="button">Edit</button></div></article>`;
         }
         return `<article class="history-item"><div class="history-top"><span class="result-badge draw">OLD</span><div class="history-main"><strong>${escapeHtml(item.text || "Legacy history entry")}</strong><div class="history-meta">Imported from the previous tracker</div></div></div></article>`;
@@ -2019,16 +2296,12 @@
       $("historyEditDate").value = toDateTimeLocal(item.date);
       $("historyEditResult").value = item.result || "draw";
       $("historyEditOpponent").value = item.opponent || "Opponent";
-      $("historyEditMatchType").value = ["casual","tournament","testing"].includes(item.matchType) ? item.matchType : "casual";
-      $("historyEditYourLeader").value = item.yourLeader || "";
-      $("historyEditDeck").value = item.deck || "";
-      $("historyEditOpponentLeader").value = item.opponentLeader || "";
-      $("historyEditOpponentDeck").value = item.opponentDeck || "";
       $("historyEditEvent").value = item.event || "";
-      $("historyEditFirstPlayer").value = ["me","opponent","unknown"].includes(item.firstPlayer) ? item.firstPlayer : "unknown";
+      $("historyEditMatchType").value = ["casual","tournament","testing"].includes(item.matchType) ? item.matchType : "casual";
+      $("historyEditDeck").value = item.deck || "";
+      $("historyEditOpponentDeck").value = item.opponentDeck || "";
       $("historyEditScoreP1").value = item.scoreP1 ?? 0;
       $("historyEditScoreP2").value = item.scoreP2 ?? 0;
-      $("historyEditNote").value = item.note || "";
       $("historyDialog").showModal();
     }
 
@@ -2044,16 +2317,12 @@
         date: new Date($("historyEditDate").value || Date.now()).toISOString(),
         result: $("historyEditResult").value,
         opponent: $("historyEditOpponent").value.trim() || "Opponent",
-        matchType: $("historyEditMatchType").value,
-        yourLeader: $("historyEditYourLeader").value.trim(),
-        deck: $("historyEditDeck").value.trim(),
-        opponentLeader: $("historyEditOpponentLeader").value.trim(),
-        opponentDeck: $("historyEditOpponentDeck").value.trim(),
         event: $("historyEditEvent").value.trim(),
-        firstPlayer: $("historyEditFirstPlayer").value,
+        matchType: $("historyEditMatchType").value,
+        deck: $("historyEditDeck").value.trim(),
+        opponentDeck: $("historyEditOpponentDeck").value.trim(),
         scoreP1: clampInt($("historyEditScoreP1").value, 0, 0, 99),
-        scoreP2: clampInt($("historyEditScoreP2").value, 0, 0, 99),
-        note: $("historyEditNote").value.trim()
+        scoreP2: clampInt($("historyEditScoreP2").value, 0, 0, 99)
       };
       profileData.history[index] = newItem; applyMatchToStats(newItem, 1);
       saveAll(); updateUI(); $("historyDialog").close(); showToast("Match updated.");
@@ -2107,8 +2376,18 @@
     }
 
     function downloadBlob(filename, blob) {
-      const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
-      anchor.href = url; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.rel = "noopener";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      setTimeout(() => {
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      }, 1500);
     }
 
     function exportHistoryCsv() {
@@ -2124,7 +2403,7 @@
 
     function exportBackup() {
       saveInputsToMatch(); saveAll();
-      const backup = { app:"Riftbound Tracker", version:5, exportedAt:new Date().toISOString(), profile:username, profileData, match };
+      const backup = { app:"Riftbound Tracker", version:6, exportedAt:new Date().toISOString(), profile:username, profileData, match };
       downloadBlob(`riftbound-backup-${username}.json`, new Blob([JSON.stringify(backup,null,2)], { type:"application/json" }));
     }
 
@@ -2273,6 +2552,7 @@
       $("deckImportText").addEventListener("input", previewDeckImport);
       $("saveDeckBtn").addEventListener("click", saveDeckFromEditor);
       $("copyDeckBtn").addEventListener("click", () => copyDeck());
+      $("exportDeckBtn").addEventListener("click", () => exportDeck());
       $("deleteDeckBtn").addEventListener("click", deleteDeckFromEditor);
 
       $("historySearch").addEventListener("input", updateHistory);
